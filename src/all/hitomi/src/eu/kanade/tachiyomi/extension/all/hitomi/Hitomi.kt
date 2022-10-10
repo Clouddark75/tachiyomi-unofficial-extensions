@@ -13,8 +13,8 @@ import eu.kanade.tachiyomi.source.model.Page
 import eu.kanade.tachiyomi.source.model.SChapter
 import eu.kanade.tachiyomi.source.model.SManga
 import eu.kanade.tachiyomi.source.online.HttpSource
-import eu.kanade.tachiyomi.util.asJsoup
 import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import okhttp3.Headers
 import okhttp3.Request
@@ -309,42 +309,59 @@ open class Hitomi(override val lang: String, private val nozomiLang: String) : H
 
     // Details
 
-    override fun mangaDetailsParse(response: Response): SManga {
-        val document = response.asJsoup()
-        fun String.replaceSpaces() = this.replace(" ", "_")
+    override fun mangaDetailsRequest(manga: SManga): Request {
+        return GET("$LTN_BASE_URL/galleries/${hlIdFromUrl(manga.url)}.js")
+    }
 
-        return SManga.create().apply {
-            title = document.select("div.gallery h1 a").joinToString { it.text() }
-            thumbnail_url = document.select("div.cover img").attr("abs:src")
-            author = document.select("div.gallery h2 a").joinToString { it.text() }
-            val tableInfo = document.select("table tr")
-                .map { tr ->
-                    val key = tr.select("td:first-child").text()
-                    val value = with(tr.select("td:last-child a")) {
-                        when (key) {
-                            "Series", "Characters" -> {
-                                if (text().isNotEmpty())
-                                    joinToString { "${attr("href").removePrefix("/").substringBefore("/")}:${it.text().replaceSpaces()}" } else null
-                            }
-                            "Tags" -> joinToString { element ->
-                                element.text().let {
-                                    when {
-                                        it.contains("♀") -> "female:${it.substringBeforeLast(" ").replaceSpaces()}"
-                                        it.contains("♂") -> "male:${it.substringBeforeLast(" ").replaceSpaces()}"
-                                        else -> it
-                                    }
-                                }
-                            }
-                            else -> joinToString { it.text() }
-                        }
-                    }
-                    Pair(key, value)
-                }
-                .plus(Pair("Date uploaded", document.select("div.gallery span.date").text()))
-                .toMap()
-            description = tableInfo.filterNot { it.value.isNullOrEmpty() || it.key in listOf("Series", "Characters", "Tags") }.entries.joinToString("\n") { "${it.key}: ${it.value}" }
-            genre = listOfNotNull(tableInfo["Series"], tableInfo["Characters"], tableInfo["Tags"]).joinToString()
+    override fun mangaDetailsParse(response: Response): SManga {
+        getcommon()
+        getgg()
+
+        val str = response.body!!.string()
+        val jsondata = json.decodeFromString<HitomiGalleryDto>(str.removePrefix("var galleryinfo = "))
+
+        fun String.replaceSpaces() = this.replace(" ", "_")
+        val quickjs = QuickJs.create()
+
+        quickjs.evaluate("var document = {'location': {'hostname': 'ltn.hitomi.la'}};")
+        quickjs.evaluate(common!!)
+        quickjs.evaluate(gg!!)
+
+        val manga = SManga.create().apply {
+            title = jsondata.title
+            thumbnail_url = quickjs.evaluate("url_from_url_from_hash('${jsondata.id}', ${json.encodeToString(jsondata.files.first())}, 'avifbigtn', 'avif', 'tn')") as String
+            author = jsondata.artists?.joinToString { it.artist }
+//            val tableInfo = document.select("table tr")
+//                .map { tr ->
+//                    val key = tr.select("td:first-child").text()
+//                    val value = with(tr.select("td:last-child a")) {
+//                        when (key) {
+//                            "Series", "Characters" -> {
+//                                if (text().isNotEmpty())
+//                                    joinToString { "${attr("href").removePrefix("/").substringBefore("/")}:${it.text().replaceSpaces()}" } else null
+//                            }
+//                            "Tags" -> joinToString { element ->
+//                                element.text().let {
+//                                    when {
+//                                        it.contains("♀") -> "female:${it.substringBeforeLast(" ").replaceSpaces()}"
+//                                        it.contains("♂") -> "male:${it.substringBeforeLast(" ").replaceSpaces()}"
+//                                        else -> it
+//                                    }
+//                                }
+//                            }
+//                            else -> joinToString { it.text() }
+//                        }
+//                    }
+//                    Pair(key, value)
+//                }
+//                .plus(Pair("Date uploaded", document.select("div.gallery span.date").text()))
+//                .toMap()
+            // description = tableInfo.filterNot { it.value.isNullOrEmpty() || it.key in listOf("Series", "Characters", "Tags") }.entries.joinToString("\n") { "${it.key}: ${it.value}" }
+            // genre = listOfNotNull(tableInfo["Series"], tableInfo["Characters"], tableInfo["Tags"]).joinToString()
         }
+
+        quickjs.close()
+        return manga
     }
 
     // Chapters
@@ -378,7 +395,7 @@ open class Hitomi(override val lang: String, private val nozomiLang: String) : H
         duktape.evaluate(gg!!)
 
         val str = response.body!!.string()
-        val json = json.decodeFromString<HitomiChapterDto>(str.removePrefix("var galleryinfo = "))
+        val json = json.decodeFromString<HitomiGalleryDto>(str.removePrefix("var galleryinfo = "))
         val pages = json.files.mapIndexed { i, jsonElement ->
             // https://ltn.hitomi.la/reader.js
             // function make_image_element()

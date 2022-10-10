@@ -3,7 +3,11 @@ package eu.kanade.tachiyomi.extension.all.hitomi
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class HitomiChapterDto(
+data class HitomiGalleryDto(
+    val title: String,
+    val id: String,
+    val artists: List<HitomiArtistDto>? = null,
+    val parodys: List<HitomiParodyDto>? = null,
     val files: List<HitomiFileDto> = emptyList(),
 )
 
@@ -13,4 +17,16 @@ data class HitomiFileDto(
     val hasavif: Int,
     val hash: String,
     val haswebp: Int,
+)
+
+@Serializable
+data class HitomiArtistDto(
+    val artist: String,
+    val url: String,
+)
+
+@Serializable
+data class HitomiParodyDto(
+    val parody: String,
+    val url: String,
 )

@@ -6,7 +6,7 @@ ext {
     extName = 'Hitomi.la'
     pkgNameSuffix = 'all.hitomi'
     extClass = '.HitomiFactory'
-    extVersionCode = 17
+    extVersionCode = 18
     isNsfw = true
 }
 
