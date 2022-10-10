@@ -145,6 +145,9 @@ jobs:
           java-version: 11
           distribution: adopt
 
+      - name: chmod
+        run: chmod +x ./gradlew
+
       - name: Build extensions (chunk ${{ matrix.chunk }})
         uses: gradle/gradle-command-action@v2
         env:

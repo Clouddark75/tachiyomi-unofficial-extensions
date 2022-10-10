@@ -141,6 +141,9 @@ jobs:
       - name: Prepare signing key
         run: |
           echo ${{ secrets.SIGNING_KEY }} | base64 -d > signingkey.jks
+          
+      - name: chmod
+        run: chmod +x ./gradlew
 
       - name: Build extensions (chunk ${{ matrix.chunk }})
         uses: gradle/gradle-command-action@v2
