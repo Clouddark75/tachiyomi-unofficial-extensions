@@ -2,7 +2,7 @@ package eu.kanade.tachiyomi.extension.all.hitomi
 
 import android.app.Application
 import android.content.SharedPreferences
-import com.squareup.duktape.Duktape
+import app.cash.quickjs.QuickJs
 import eu.kanade.tachiyomi.network.GET
 import eu.kanade.tachiyomi.network.asObservableSuccess
 import eu.kanade.tachiyomi.source.ConfigurableSource
@@ -357,8 +357,8 @@ open class Hitomi(override val lang: String, private val nozomiLang: String) : H
             val response = client.newCall(GET("$LTN_BASE_URL/gg.js")).execute()
             gg = response.body!!.string()
         }
-        val duktape = Duktape.create()
-        duktape.evaluate(gg)
+        val duktape = QuickJs.create()
+        duktape.evaluate(gg!!)
 
         val str = response.body!!.string()
         val json = json.decodeFromString<HitomiChapterDto>(str.removePrefix("var galleryinfo = "))
