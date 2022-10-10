@@ -59,6 +59,9 @@ jobs:
           echo "::set-output name=isIndividualChanged::$isIndividualChanged"
           echo "::set-output name=isMultisrcChanged::$isMultisrcChanged"
 
+      - name: chmod
+        run: chmod +x ./gradlew
+
       - name: Generate multisrc sources
         if: ${{ steps.parse-changed-files.outputs.isMultisrcChanged == '1' }}
         uses: gradle/gradle-command-action@v2
