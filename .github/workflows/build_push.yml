@@ -36,6 +36,9 @@ jobs:
           java-version: 11
           distribution: adopt
 
+      - name: chmod
+        run: chmod +x ./gradlew
+
       - name: Generate multisrc sources
         uses: gradle/gradle-command-action@v2
         with:
