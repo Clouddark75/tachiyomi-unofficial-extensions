@@ -16,8 +16,10 @@ import eu.kanade.tachiyomi.source.online.HttpSource
 import eu.kanade.tachiyomi.util.asJsoup
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
+import okhttp3.Headers
 import okhttp3.Request
 import okhttp3.Response
+import org.jsoup.Jsoup
 import rx.Observable
 import rx.Single
 import rx.schedulers.Schedulers
@@ -47,6 +49,9 @@ open class Hitomi(override val lang: String, private val nozomiLang: String) : H
     private val json: Json by injectLazy()
 
     private var gg: String? = null
+    private var common: String? = null
+
+    override fun headersBuilder(): Headers.Builder = super.headersBuilder().add("Referer", baseUrl)
 
     // Popular
 
@@ -95,17 +100,32 @@ open class Hitomi(override val lang: String, private val nozomiLang: String) : H
     }
 
     private fun parseGalleryBlock(response: Response): SManga {
-        val doc = response.asJsoup()
-        return SManga.create().apply {
-            val titleElement = doc.selectFirst("h1")
+        var doc = response.body!!.string()
+
+        getgg()
+        getcommon()
+        val duktape = QuickJs.create()
+
+        duktape.evaluate("var document = {'location': {'hostname': 'ltn.hitomi.la'}};")
+        duktape.evaluate(common!!)
+        duktape.evaluate(gg!!)
+
+        doc = duktape.evaluate("rewrite_tn_paths(`$doc`);") as String
+        val document = Jsoup.parse(doc)
+
+        val manga = SManga.create().apply {
+            val titleElement = document.selectFirst("h1")
             title = titleElement.text()
             thumbnail_url = "https:" + if (useHqThumbPref()) {
-                doc.selectFirst("img").attr("srcset").substringBefore(' ')
+                document.selectFirst("picture > source").attr("data-srcset").substringBefore(' ')
             } else {
-                doc.selectFirst("img").attr("src")
+                document.selectFirst("img").attr("data-src")
             }
             url = titleElement.child(0).attr("href")
         }
+
+        duktape.close()
+        return manga
     }
 
     override fun popularMangaParse(response: Response) = throw UnsupportedOperationException("Not used")
@@ -183,7 +203,7 @@ open class Hitomi(override val lang: String, private val nozomiLang: String) : H
                 val hn = Single.zip(tagIndexVersion(), galleryIndexVersion()) { tv, gv -> tv to gv }
                     .map { HitomiNozomi(client, it.first, it.second) }
                 val base = hn.flatMap { n ->
-                    n.getGalleryIdsForQuery("$area:${URLEncoder.encode(keyword, "utf-8")}", nozomiLang, popular).map { n to it.toSet() }
+                    n.getGalleryIdsForQuery("$area:${URLEncoder.encode(keyword, "utf-8").replace("+", "%20")}", nozomiLang, popular).map { n to it.toSet() }
                 }
                 base.flatMap { (_, ids) ->
                     val chunks = ids.chunked(PAGE_SIZE)
@@ -353,10 +373,7 @@ open class Hitomi(override val lang: String, private val nozomiLang: String) : H
     }
 
     override fun pageListParse(response: Response): List<Page> {
-        if (gg.isNullOrEmpty()) {
-            val response = client.newCall(GET("$LTN_BASE_URL/gg.js")).execute()
-            gg = response.body!!.string()
-        }
+        getgg()
         val duktape = QuickJs.create()
         duktape.evaluate(gg!!)
 
@@ -393,6 +410,21 @@ open class Hitomi(override val lang: String, private val nozomiLang: String) : H
         }
         duktape.close()
         return pages
+    }
+
+    private fun getgg() {
+        if (gg.isNullOrEmpty()) {
+            val response = client.newCall(GET("$LTN_BASE_URL/gg.js?_=${System.currentTimeMillis()}")).execute()
+            gg = response.body!!.string()
+            gg = gg!!.replace("'use strict';", "")
+        }
+    }
+
+    private fun getcommon() {
+        if (common.isNullOrEmpty()) {
+            val response = client.newCall(GET("$LTN_BASE_URL/common.js")).execute()
+            common = response.body!!.string().substringBefore("function show_loading()")
+        }
     }
 
     override fun imageRequest(page: Page): Request {

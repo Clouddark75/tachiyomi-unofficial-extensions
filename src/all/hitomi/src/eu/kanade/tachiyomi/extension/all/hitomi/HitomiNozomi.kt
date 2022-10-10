@@ -199,12 +199,12 @@ class HitomiNozomi(
 
     fun getGalleryIdsFromNozomi(area: String?, tag: String, language: String, popular: Boolean): Single<List<Int>> {
         val replacedTag = tag.replace('_', ' ')
-        var nozomiAddress = "$LTN_BASE_URL/$COMPRESSED_NOZOMI_PREFIX/$replacedTag-$language$NOZOMI_EXTENSION"
+        var nozomiAddress = "$LTN_BASE_URL/$replacedTag-$language$NOZOMI_EXTENSION"
         if (area != null) {
             nozomiAddress = if (popular) {
-                "$LTN_BASE_URL/$COMPRESSED_NOZOMI_PREFIX/$area/popular/$replacedTag-$language$NOZOMI_EXTENSION"
+                "$LTN_BASE_URL/$area/popular/$replacedTag-$language$NOZOMI_EXTENSION"
             } else {
-                "$LTN_BASE_URL/$COMPRESSED_NOZOMI_PREFIX/$area/$replacedTag-$language$NOZOMI_EXTENSION"
+                "$LTN_BASE_URL/$area/$replacedTag-$language$NOZOMI_EXTENSION"
             }
         }
 
@@ -243,7 +243,7 @@ class HitomiNozomi(
             return GET(
                 url,
                 Headers.Builder()
-                    .add("Range", "bytes=$rangeBegin-${rangeEnd ?: ""}")
+                    .add("range", "bytes=$rangeBegin-${rangeEnd ?: ""}")
                     .build()
             )
         }
