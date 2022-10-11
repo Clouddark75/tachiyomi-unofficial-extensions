@@ -338,6 +338,27 @@
     ]
   },
   {
+    "name": "Tachiyomi: Reset Scans",
+    "pkg": "eu.kanade.tachiyomi.extension.en.resetscans",
+    "apk": "tachiyomi-en.resetscans-v1.3.29.apk",
+    "lang": "en",
+    "code": 29,
+    "version": "1.3.29",
+    "nsfw": 0,
+    "hasReadme": 0,
+    "hasChangelog": 0,
+    "sources": [
+      {
+        "name": "Reset Scans",
+        "lang": "en",
+        "id": "8894279497795073184",
+        "baseUrl": "https://reset-scans.com",
+        "versionId": 1,
+        "hasCloudflare": 1
+      }
+    ]
+  },
+  {
     "name": "Tachiyomi: Setsu Scans",
     "pkg": "eu.kanade.tachiyomi.extension.en.setsuscans",
     "apk": "tachiyomi-en.setsuscans-v1.3.26.apk",
