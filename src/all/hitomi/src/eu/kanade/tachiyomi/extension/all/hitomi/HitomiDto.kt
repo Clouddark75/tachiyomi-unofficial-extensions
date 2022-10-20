@@ -8,6 +8,8 @@ data class HitomiGalleryDto(
     val id: String,
     val artists: List<HitomiArtistDto>? = null,
     val parodys: List<HitomiParodyDto>? = null,
+    val characters: List<HitomiCharacterDto>? = null,
+    val tags: List<HitomiTagsDto>? = null,
     val files: List<HitomiFileDto> = emptyList(),
 )
 
@@ -28,5 +30,17 @@ data class HitomiArtistDto(
 @Serializable
 data class HitomiParodyDto(
     val parody: String,
+    val url: String,
+)
+
+@Serializable
+data class HitomiTagsDto(
+    val tag: String,
+    val url: String,
+)
+
+@Serializable
+data class HitomiCharacterDto(
+    val character: String,
     val url: String,
 )

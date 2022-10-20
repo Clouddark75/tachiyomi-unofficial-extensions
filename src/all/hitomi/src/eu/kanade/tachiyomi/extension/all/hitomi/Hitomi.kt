@@ -331,33 +331,18 @@ open class Hitomi(override val lang: String, private val nozomiLang: String) : H
             title = jsondata.title
             thumbnail_url = quickjs.evaluate("url_from_url_from_hash('${jsondata.id}', ${json.encodeToString(jsondata.files.first())}, 'avifbigtn', 'avif', 'tn')") as String
             author = jsondata.artists?.joinToString { it.artist }
-//            val tableInfo = document.select("table tr")
-//                .map { tr ->
-//                    val key = tr.select("td:first-child").text()
-//                    val value = with(tr.select("td:last-child a")) {
-//                        when (key) {
-//                            "Series", "Characters" -> {
-//                                if (text().isNotEmpty())
-//                                    joinToString { "${attr("href").removePrefix("/").substringBefore("/")}:${it.text().replaceSpaces()}" } else null
-//                            }
-//                            "Tags" -> joinToString { element ->
-//                                element.text().let {
-//                                    when {
-//                                        it.contains("♀") -> "female:${it.substringBeforeLast(" ").replaceSpaces()}"
-//                                        it.contains("♂") -> "male:${it.substringBeforeLast(" ").replaceSpaces()}"
-//                                        else -> it
-//                                    }
-//                                }
-//                            }
-//                            else -> joinToString { it.text() }
-//                        }
-//                    }
-//                    Pair(key, value)
-//                }
-//                .plus(Pair("Date uploaded", document.select("div.gallery span.date").text()))
-//                .toMap()
-            // description = tableInfo.filterNot { it.value.isNullOrEmpty() || it.key in listOf("Series", "Characters", "Tags") }.entries.joinToString("\n") { "${it.key}: ${it.value}" }
-            // genre = listOfNotNull(tableInfo["Series"], tableInfo["Characters"], tableInfo["Tags"]).joinToString()
+            genre =
+                listOfNotNull(
+                    jsondata.tags?.joinToString {
+                        when {
+                            it.url.contains("/female%3A") -> "female:${it.tag.replaceSpaces()}"
+                            it.url.contains("/male%3A") -> "male:${it.tag.replaceSpaces()}"
+                            else -> it.tag
+                        }
+                    },
+                    jsondata.parodys?.joinToString { "series:${it.parody.replaceSpaces()}" },
+                    jsondata.characters?.joinToString { "character:${it.character.replaceSpaces()}" }
+                ).joinToString()
         }
 
         quickjs.close()
