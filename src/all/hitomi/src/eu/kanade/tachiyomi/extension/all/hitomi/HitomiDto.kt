@@ -11,6 +11,7 @@ data class HitomiGalleryDto(
     val characters: List<HitomiCharacterDto>? = null,
     val tags: List<HitomiTagsDto>? = null,
     val files: List<HitomiFileDto> = emptyList(),
+    val date: String,
 )
 
 @Serializable

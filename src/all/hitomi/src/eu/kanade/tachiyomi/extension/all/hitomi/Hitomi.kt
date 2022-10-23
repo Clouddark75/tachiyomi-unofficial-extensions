@@ -350,6 +350,7 @@ open class Hitomi(override val lang: String, private val nozomiLang: String) : H
                     jsondata.parodys?.joinToString { "series:${it.parody.replaceSpaces()}" },
                     jsondata.characters?.joinToString { "character:${it.character.replaceSpaces()}" }
                 ).joinToString()
+            description = jsondata.date
         }
 
         quickjs.close()
