@@ -4,6 +4,7 @@ import android.app.Application
 import android.content.SharedPreferences
 import app.cash.quickjs.QuickJs
 import eu.kanade.tachiyomi.network.GET
+import eu.kanade.tachiyomi.network.asObservable
 import eu.kanade.tachiyomi.network.asObservableSuccess
 import eu.kanade.tachiyomi.source.ConfigurableSource
 import eu.kanade.tachiyomi.source.model.Filter
@@ -91,12 +92,18 @@ open class Hitomi(override val lang: String, private val nozomiLang: String) : H
         return Single.zip(
             ids.map { int ->
                 client.newCall(GET("$LTN_BASE_URL/galleryblock/$int.html"))
-                    .asObservableSuccess()
+                    .asObservable()
                     .subscribeOn(Schedulers.io()) // Perform all these requests in parallel
-                    .map { parseGalleryBlock(it) }
+                    .map {
+                        if (it.isSuccessful) {
+                            parseGalleryBlock(it)
+                        } else {
+                            null
+                        }
+                    }
                     .toSingle()
             }
-        ) { it.map { m -> m as SManga } }
+        ) { it.mapNotNull { m -> m as SManga? } }
     }
 
     private fun parseGalleryBlock(response: Response): SManga {
