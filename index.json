@@ -317,6 +317,27 @@
     ]
   },
   {
+    "name": "Tachiyomi: DragonTea",
+    "pkg": "eu.kanade.tachiyomi.extension.en.dragontea",
+    "apk": "tachiyomi-en.dragontea-v1.3.27.apk",
+    "lang": "en",
+    "code": 27,
+    "version": "1.3.27",
+    "nsfw": 0,
+    "hasReadme": 0,
+    "hasChangelog": 0,
+    "sources": [
+      {
+        "name": "DragonTea",
+        "lang": "en",
+        "id": "6573506892686767219",
+        "baseUrl": "https://dragontea.ink/",
+        "versionId": 1,
+        "hasCloudflare": 1
+      }
+    ]
+  },
+  {
     "name": "Tachiyomi: Luminous Scans",
     "pkg": "eu.kanade.tachiyomi.extension.en.luminousscans",
     "apk": "tachiyomi-en.luminousscans-v1.3.22.apk",
