@@ -17,7 +17,7 @@ private data class DataPair(val offset: Long, val length: Int)
 private data class Node(
     val keys: List<ByteArray>,
     val datas: List<DataPair>,
-    val subnodeAddresses: List<Long>
+    val subnodeAddresses: List<Long>,
 )
 
 /**
@@ -27,7 +27,7 @@ private data class Node(
 class HitomiNozomi(
     private val client: OkHttpClient,
     private val tagIndexVersion: Long,
-    private val galleriesIndexVersion: Long
+    private val galleriesIndexVersion: Long,
 ) {
     fun getGalleryIdsForQuery(query: String, language: String, popular: Boolean): Single<List<Int>> {
         if (':' in query) {
@@ -193,7 +193,9 @@ class HitomiNozomi(
             .map { nodedata ->
                 if (nodedata.isNotEmpty()) {
                     decodeNode(nodedata)
-                } else null
+                } else {
+                    null
+                }
             }.toSingle()
     }
 
@@ -211,7 +213,7 @@ class HitomiNozomi(
         return client.newCall(
             Request.Builder()
                 .url(nozomiAddress)
-                .build()
+                .build(),
         )
             .asObservableSuccess()
             .map { resp ->
@@ -244,7 +246,7 @@ class HitomiNozomi(
                 url,
                 Headers.Builder()
                     .add("range", "bytes=$rangeBegin-${rangeEnd ?: ""}")
-                    .build()
+                    .build(),
             )
         }
 

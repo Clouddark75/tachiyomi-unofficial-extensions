@@ -22,7 +22,7 @@ class DragonTea : Madara(
     "DragonTea",
     "https://dragontea.ink/",
     "en",
-    dateFormat = SimpleDateFormat("MM/dd/yyyy", Locale.US)
+    dateFormat = SimpleDateFormat("MM/dd/yyyy", Locale.US),
 ) {
     override val client: OkHttpClient = network.cloudflareClient.newBuilder()
         .connectTimeout(10, TimeUnit.SECONDS)

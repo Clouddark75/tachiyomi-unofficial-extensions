@@ -65,7 +65,7 @@ open class Hitomi(override val lang: String, private val nozomiLang: String) : H
     override fun popularMangaRequest(page: Int) = HitomiNozomi.rangedGet(
         "$LTN_BASE_URL/popular-$nozomiLang.nozomi",
         100L * (page - 1),
-        99L + 100 * (page - 1)
+        99L + 100 * (page - 1),
     )
 
     private fun responseToMangas(response: Response): Observable<MangasPage> {
@@ -102,7 +102,7 @@ open class Hitomi(override val lang: String, private val nozomiLang: String) : H
                         }
                     }
                     .toSingle()
-            }
+            },
         ) { it.mapNotNull { m -> m as SManga? } }
     }
 
@@ -122,11 +122,11 @@ open class Hitomi(override val lang: String, private val nozomiLang: String) : H
 
         val manga = SManga.create().apply {
             val titleElement = document.selectFirst("h1")
-            title = titleElement.text()
+            title = titleElement!!.text()
             thumbnail_url = "https:" + if (useHqThumbPref()) {
-                document.selectFirst("picture > source").attr("data-srcset").substringBefore(' ')
+                document.selectFirst("picture > source")!!.attr("data-srcset").substringBefore(' ')
             } else {
-                document.selectFirst("img").attr("data-src")
+                document.selectFirst("img")!!.attr("data-src")
             }
             url = titleElement.child(0).attr("href")
         }
@@ -148,7 +148,7 @@ open class Hitomi(override val lang: String, private val nozomiLang: String) : H
     override fun latestUpdatesRequest(page: Int) = HitomiNozomi.rangedGet(
         "$LTN_BASE_URL/index-$nozomiLang.nozomi",
         100L * (page - 1),
-        99L + 100 * (page - 1)
+        99L + 100 * (page - 1),
     )
 
     override fun latestUpdatesParse(response: Response) = throw UnsupportedOperationException("Not used")
@@ -281,7 +281,7 @@ open class Hitomi(override val lang: String, private val nozomiLang: String) : H
         Filter.Separator(),
         SortFilter(),
         TypeFilter(),
-        Text("Keyword")
+        Text("Keyword"),
     )
 
     private class TypeFilter : UriPartFilter(
@@ -289,21 +289,21 @@ open class Hitomi(override val lang: String, private val nozomiLang: String) : H
         Array(FILTER_CATEGORIES.size) { i ->
             val category = FILTER_CATEGORIES[i]
             Pair(category, category)
-        }
+        },
     )
 
     private class SortFilter : UriPartFilter(
         "Ordered by",
         arrayOf(
             Pair("Date Added", "false"),
-            Pair("Popularity", "true")
-        )
+            Pair("Popularity", "true"),
+        ),
     )
 
     private open class UriPartFilter(
         displayName: String,
         val pair: Array<Pair<String, String>>,
-        defaultState: Int = 0
+        defaultState: Int = 0,
     ) : Filter.Select<String>(displayName, pair.map { it.first }.toTypedArray(), defaultState) {
         open fun toUriPart() = pair[state].second
     }
@@ -348,7 +348,7 @@ open class Hitomi(override val lang: String, private val nozomiLang: String) : H
                         }
                     },
                     jsondata.parodys?.joinToString { "series:${it.parody.replaceSpaces()}" },
-                    jsondata.characters?.joinToString { "character:${it.character.replaceSpaces()}" }
+                    jsondata.characters?.joinToString { "character:${it.character.replaceSpaces()}" },
                 ).joinToString()
             description = jsondata.date
         }
@@ -366,8 +366,8 @@ open class Hitomi(override val lang: String, private val nozomiLang: String) : H
                     url = manga.url
                     name = "Chapter"
                     chapter_number = 0.0f
-                }
-            )
+                },
+            ),
         )
     }
 
@@ -461,7 +461,7 @@ open class Hitomi(override val lang: String, private val nozomiLang: String) : H
         private val COMMON_WORDS = listOf(
             "a", "be", "boy", "de", "girl", "ga", "i", "is", "ka", "na",
             "ni", "ne", "no", "suru", "to", "wa", "wo", "yo",
-            "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z"
+            "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z",
         )
 
         // From HitomiSearchMetaData
@@ -470,8 +470,14 @@ open class Hitomi(override val lang: String, private val nozomiLang: String) : H
 
         // Filter
         private val FILTER_CATEGORIES = listOf(
-            "tag", "male", "female", "type",
-            "artist", "series", "character", "group"
+            "tag",
+            "male",
+            "female",
+            "type",
+            "artist",
+            "series",
+            "character",
+            "group",
         )
         private const val Filter_SEARCH_MESSAGE = "NOTE: Ignored if using text search!"
 

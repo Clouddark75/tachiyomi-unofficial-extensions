@@ -236,10 +236,10 @@ apply from: "$rootDir/common.gradle"
 | `pkgNameSuffix` | A unique suffix added to `eu.kanade.tachiyomi.extension`. The language and the site name should be enough. Remember your extension code implementation must be placed in this package. |
 | `extClass` | Points to the class that implements `Source`. You can use a relative path starting with a dot (the package name is the base path). This is used to find and instantiate the source(s). |
 | `extVersionCode` | The extension version code. This must be a positive integer and incremented with any change to the code. |
-| `libVersion` | (Optional, defaults to `1.3`) The version of the [extensions library](https://github.com/tachiyomiorg/extensions-lib) used. |
+| `libVersion` | (Optional, defaults to `1.4`) The version of the [extensions library](https://github.com/tachiyomiorg/extensions-lib) used. |
 | `isNsfw` | (Optional, defaults to `false`) Flag to indicate that a source contains NSFW content. |
 
-The extension's version name is generated automatically by concatenating `libVersion` and `extVersionCode`. With the example used above, the version would be `1.3.1`.
+The extension's version name is generated automatically by concatenating `libVersion` and `extVersionCode`. With the example used above, the version would be `1.4.1`.
 
 ### Core dependencies
 
@@ -350,6 +350,9 @@ open class UriPartFilter(displayName: String, private val vals: Array<Pair<Strin
     - If a `SManga` is cached, `fetchMangaDetails` will be only called when the user does a manual update (Swipe-to-Refresh).
 - `fetchChapterList` is called to display the chapter list.
     - **The list should be sorted descending by the source order**.
+- `getMangaUrl` is called when the user taps "Open in WebView".
+  - If the source uses an API to fetch the data, consider overriding this method to return the manga absolute URL in the website instead.
+  - It defaults to the URL provided to the request in `mangaDetailsRequest`.
 
 #### Chapter
 
@@ -378,6 +381,9 @@ open class UriPartFilter(displayName: String, private val vals: Array<Pair<Strin
       - In older versions, the default date is always the fetch date.
       - In newer versions, this is the same if every (new) chapter has `0L` returned.
       - However, if the source only provides the upload date of the latest chapter, you can now set it to the latest chapter and leave other chapters default. The app will automatically set it (instead of fetch date) to every new chapter and leave old chapters' dates untouched.
+- `getChapterUrl` is called when the user taps "Open in WebView" in the reader.
+  - If the source uses an API to fetch the data, consider overriding this method to return the chapter absolute URL in the website instead.
+  - It defaults to the URL provided to the request in `pageListRequest`.
 
 #### Chapter Pages
 
@@ -406,6 +412,15 @@ To test if the URL intent filter is working as expected, you can try opening the
 ```console
 $ adb shell am start -d "<your-link>" -a android.intent.action.VIEW
 ```
+
+#### Update strategy
+
+There is some cases where titles in a source will always only have the same chapter list (i.e. immutable), and don't need to be included in a global update of the app because of that, saving a lot of requests and preventing causing unnecessary damage to the source servers. To change the update strategy of a `SManga`, use the `update_strategy` field. You can find below a description of the current possible values.
+
+- `UpdateStrategy.ALWAYS_UPDATE`: Titles marked as always update will be included in the library update if they aren't excluded by additional restrictions.
+- `UpdateStrategy.ONLY_FETCH_ONCE`: Titles marked as only fetch once will be automatically skipped during library updates. Useful for cases where the series is previously known to be finished and have only a single chapter, for example.
+
+If not set, it defaults to `ALWAYS_UPDATE`.
 
 #### Renaming existing sources
 

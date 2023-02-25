@@ -46,5 +46,5 @@ private val languageList = listOf(
     Pair("th", "thai"),
     Pair("ko", "korean"),
     Pair("zh", "chinese"),
-    Pair("ja", "japanese")
+    Pair("ja", "japanese"),
 )
