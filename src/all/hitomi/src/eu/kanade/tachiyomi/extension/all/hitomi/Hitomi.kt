@@ -13,6 +13,7 @@ import eu.kanade.tachiyomi.source.model.MangasPage
 import eu.kanade.tachiyomi.source.model.Page
 import eu.kanade.tachiyomi.source.model.SChapter
 import eu.kanade.tachiyomi.source.model.SManga
+import eu.kanade.tachiyomi.source.model.UpdateStrategy
 import eu.kanade.tachiyomi.source.online.HttpSource
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
@@ -351,6 +352,7 @@ open class Hitomi(override val lang: String, private val nozomiLang: String) : H
                     jsondata.characters?.joinToString { "character:${it.character.replaceSpaces()}" },
                 ).joinToString()
             description = jsondata.date
+            update_strategy = UpdateStrategy.ONLY_FETCH_ONCE
         }
 
         quickjs.close()
