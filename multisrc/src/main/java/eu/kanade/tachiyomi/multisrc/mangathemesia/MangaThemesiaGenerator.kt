@@ -10,7 +10,7 @@ class MangaThemesiaGenerator : ThemeSourceGenerator {
 
     override val themeClass = "MangaThemesia"
 
-    override val baseVersionCode: Int = 24
+    override val baseVersionCode: Int = 25
 
     override val sources = listOf(
         SingleLang("Luminous Scans", "https://www.luminousscans.com", "en", overrideVersionCode = 1),
