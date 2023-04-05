@@ -114,7 +114,7 @@ jobs:
 
       - name: Upload APKs (chunk ${{ matrix.chunk }})
         uses: actions/upload-artifact@v3
-        if: "github.repository == 'Basara-Hatake/tachiyomi-unofficial-extensions'"
+        if: "github.repository == 'Clouddark75/tachiyomi-unofficial-extensions'"
         with:
           name: "multisrc-apks-${{ matrix.chunk }}"
           path: "**/*.apk"
@@ -159,7 +159,7 @@ jobs:
 
       - name: Upload APKs (chunk ${{ matrix.chunk }})
         uses: actions/upload-artifact@v3
-        if: "github.repository == 'Basara-Hatake/tachiyomi-unofficial-extensions'"
+        if: "github.repository == 'Clouddark75/tachiyomi-unofficial-extensions'"
         with:
           name: "individual-apks-${{ matrix.chunk }}"
           path: "**/*.apk"
@@ -173,7 +173,7 @@ jobs:
     needs:
       - build_multisrc
       - build_individual
-    if: "github.repository == 'Basara-Hatake/tachiyomi-unofficial-extensions'"
+    if: "github.repository == 'Clouddark75/tachiyomi-unofficial-extensions'"
     runs-on: ubuntu-latest
     steps:
       - name: Download APK artifacts
