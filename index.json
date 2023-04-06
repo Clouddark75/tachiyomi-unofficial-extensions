@@ -340,10 +340,10 @@
   {
     "name": "Tachiyomi: Luminous Scans",
     "pkg": "eu.kanade.tachiyomi.extension.en.luminousscans",
-    "apk": "tachiyomi-en.luminousscans-v1.4.25.apk",
+    "apk": "tachiyomi-en.luminousscans-v1.4.26.apk",
     "lang": "en",
-    "code": 25,
-    "version": "1.4.25",
+    "code": 26,
+    "version": "1.4.26",
     "nsfw": 0,
     "hasReadme": 1,
     "hasChangelog": 0,
@@ -395,6 +395,27 @@
         "lang": "en",
         "id": "8546397272954539389",
         "baseUrl": "https://setsuscans.com",
+        "versionId": 1,
+        "hasCloudflare": 1
+      }
+    ]
+  },
+  {
+    "name": "Tachiyomi: Tecno Scan",
+    "pkg": "eu.kanade.tachiyomi.extension.es.tecnoscan",
+    "apk": "tachiyomi-es.tecnoscan-v1.4.26.apk",
+    "lang": "es",
+    "code": 26,
+    "version": "1.4.26",
+    "nsfw": 0,
+    "hasReadme": 1,
+    "hasChangelog": 0,
+    "sources": [
+      {
+        "name": "Tecno Scan",
+        "lang": "es",
+        "id": "8817389303230743686",
+        "baseUrl": "https://tecnoscann.com",
         "versionId": 1,
         "hasCloudflare": 1
       }
