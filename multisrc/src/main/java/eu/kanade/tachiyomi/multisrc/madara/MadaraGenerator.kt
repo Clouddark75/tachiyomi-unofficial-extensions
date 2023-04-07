@@ -16,6 +16,7 @@ class MadaraGenerator : ThemeSourceGenerator {
         SingleLang("DragonTea", "https://dragontea.ink", "en", overrideVersionCode = 3),
         SingleLang("Reset Scans", "https://reset-scans.com", "en", overrideVersionCode = 6),
         SingleLang("Setsu Scans", "https://setsuscans.com", "en", overrideVersionCode = 2),
+        SingleLang("Emperor Scan", "https://emperorscan.com", "es", overrideVersionCode = 1),
     )
 
     companion object {
