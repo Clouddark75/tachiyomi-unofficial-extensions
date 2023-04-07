@@ -401,6 +401,27 @@
     ]
   },
   {
+    "name": "Tachiyomi: Emperor Scan",
+    "pkg": "eu.kanade.tachiyomi.extension.es.emperorscan",
+    "apk": "tachiyomi-es.emperorscan-v1.4.29.apk",
+    "lang": "es",
+    "code": 29,
+    "version": "1.4.29",
+    "nsfw": 0,
+    "hasReadme": 0,
+    "hasChangelog": 0,
+    "sources": [
+      {
+        "name": "Emperor Scan",
+        "lang": "es",
+        "id": "4562754350961964148",
+        "baseUrl": "https://emperorscan.com",
+        "versionId": 1,
+        "hasCloudflare": 1
+      }
+    ]
+  },
+  {
     "name": "Tachiyomi: Tecno Scan",
     "pkg": "eu.kanade.tachiyomi.extension.es.tecnoscan",
     "apk": "tachiyomi-es.tecnoscan-v1.4.26.apk",
