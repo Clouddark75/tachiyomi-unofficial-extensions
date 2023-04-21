@@ -422,6 +422,27 @@
     ]
   },
   {
+    "name": "Tachiyomi: LeerCapitulo / OlympusScan.top",
+    "pkg": "eu.kanade.tachiyomi.extension.es.leercapitulo",
+    "apk": "tachiyomi-es.leercapitulo-v1.4.4.apk",
+    "lang": "es",
+    "code": 4,
+    "version": "1.4.4",
+    "nsfw": 0,
+    "hasReadme": 0,
+    "hasChangelog": 0,
+    "sources": [
+      {
+        "name": "LeerCapitulo",
+        "lang": "es",
+        "id": "5621901596522308538",
+        "baseUrl": "https://www.leercapitulo.com#, https://olympusscan.top",
+        "versionId": 1,
+        "hasCloudflare": 0
+      }
+    ]
+  },
+  {
     "name": "Tachiyomi: Tecno Scan",
     "pkg": "eu.kanade.tachiyomi.extension.es.tecnoscan",
     "apk": "tachiyomi-es.tecnoscan-v1.4.26.apk",
