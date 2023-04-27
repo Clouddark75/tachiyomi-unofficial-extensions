@@ -156,7 +156,7 @@ class LeerCapitulo : ParsedHttpSource(), ConfigurableSource {
             ?.replace("[^\\d]+".toRegex(), "-")
             ?.split("-")
         val urls = document.selectFirst("#arraydata")!!.text().split(',')
-        val sortedUrl = order?.map { urls[it.toInt()] } ?: urls
+        val sortedUrl = order?.map { urls[it.reversed().toInt()] } ?: urls
 
         return sortedUrl.mapIndexed { i, image_url ->
             Page(i, imageUrl = image_url.replace("https://cdn.statically.io/img/", "https://")) // just redirects
