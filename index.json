@@ -424,10 +424,10 @@
   {
     "name": "Tachiyomi: LeerCapitulo / OlympusScan.top",
     "pkg": "eu.kanade.tachiyomi.extension.es.leercapitulo",
-    "apk": "tachiyomi-es.leercapitulo-v1.4.4.apk",
+    "apk": "tachiyomi-es.leercapitulo-v1.4.5.apk",
     "lang": "es",
-    "code": 4,
-    "version": "1.4.4",
+    "code": 5,
+    "version": "1.4.5",
     "nsfw": 0,
     "hasReadme": 0,
     "hasChangelog": 0,
