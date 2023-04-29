@@ -176,7 +176,7 @@ class LeerCapitulo : ParsedHttpSource(), ConfigurableSource {
 
     override fun imageUrlParse(document: Document): String =
         throw UnsupportedOperationException("Not used.")
-        
+
     // Other
     private fun String.toStatus() = when (this) {
         "Ongoing" -> SManga.ONGOING
