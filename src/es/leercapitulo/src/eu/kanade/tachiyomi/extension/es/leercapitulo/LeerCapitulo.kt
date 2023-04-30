@@ -161,8 +161,8 @@ class LeerCapitulo : ParsedHttpSource(), ConfigurableSource {
         val arrayData = document.selectFirst("#arraydata")!!.text()
 
         val encodedUrls = arrayData.replace(Regex("[A-Z0-9]", RegexOption.IGNORE_CASE)) {
-            val index = "BoevQJylkhcAxZVb4sXTgfaHu3zr7tP61L9qGNUmCpYKREdijD28OSwWInF5M0".indexOf(it.value)
-            "GQiMUkPrKIgpzVcu87AY4LnvO2a0oBy9JFbRhSx6qdfme5wZsEWlT1CN3XjDHt"[index].toString()
+            val index = "ZOPo0z9kmYrtdQ8GweChFygXJBsvTSulUKp2LWqEjDRN5c7V34naA6M1fbIxHi".indexOf(it.value)
+            "sPYv8dyzOtFGJhVekLQNRD1m5rX2HSjo9quf6xU0TB7cIbCi3MlwgKnEWAZa4p"[index].toString()
         }
 
         val urlList = String(Base64.decode(encodedUrls, Base64.DEFAULT), Charset.forName("UTF-8")).split(",")
