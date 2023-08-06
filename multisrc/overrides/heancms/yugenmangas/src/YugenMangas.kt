@@ -7,7 +7,6 @@ import eu.kanade.tachiyomi.multisrc.heancms.HeanCmsSeriesDto
 import eu.kanade.tachiyomi.multisrc.heancms.SortByFilter
 import eu.kanade.tachiyomi.multisrc.heancms.StatusFilter
 import eu.kanade.tachiyomi.network.GET
-import eu.kanade.tachiyomi.network.interceptor.rateLimitHost
 import eu.kanade.tachiyomi.source.model.FilterList
 import eu.kanade.tachiyomi.source.model.Page
 import eu.kanade.tachiyomi.source.model.SChapter
@@ -17,7 +16,6 @@ import okhttp3.Request
 import okhttp3.Response
 import java.text.SimpleDateFormat
 import java.util.TimeZone
-import java.util.concurrent.TimeUnit
 
 class YugenMangas :
     HeanCms(
@@ -29,12 +27,6 @@ class YugenMangas :
 
     // Site changed from Madara to HeanCms.
     override val versionId = 2
-
-    override val client = super.client.newBuilder()
-        .connectTimeout(60, TimeUnit.SECONDS)
-        .readTimeout(90, TimeUnit.SECONDS)
-        .rateLimitHost(apiUrl.toHttpUrl(), 2, 3)
-        .build()
 
     override val coverPath: String = ""
 
