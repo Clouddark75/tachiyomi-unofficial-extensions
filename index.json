@@ -462,5 +462,26 @@
         "hasCloudflare": 1
       }
     ]
+  },
+  {
+    "name": "Tachiyomi: YugenMangas",
+    "pkg": "eu.kanade.tachiyomi.extension.es.yugenmangas",
+    "apk": "tachiyomi-es.yugenmangas-v1.4.22.apk",
+    "lang": "es",
+    "code": 22,
+    "version": "1.4.22",
+    "nsfw": 1,
+    "hasReadme": 0,
+    "hasChangelog": 0,
+    "sources": [
+      {
+        "name": "YugenMangas",
+        "lang": "es",
+        "id": "4657393995731164616",
+        "baseUrl": "https://yugenmangas.net",
+        "versionId": 2,
+        "hasCloudflare": 1
+      }
+    ]
   }
 ]
