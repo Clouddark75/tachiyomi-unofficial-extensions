@@ -45,7 +45,6 @@ class YugenMangas :
             .addQueryParameter("perPage", "12")
             .addQueryParameter("tags_ids", "[]")
             .addQueryParameter("date", System.currentTimeMillis().toString())
-            
         return GET(url.build(), headers)
     }
 
@@ -60,7 +59,6 @@ class YugenMangas :
             .addQueryParameter("perPage", "12")
             .addQueryParameter("tags_ids", "[]")
             .addQueryParameter("date", System.currentTimeMillis().toString())
-            
         return GET(url.build(), headers)
     }
 
@@ -83,7 +81,6 @@ class YugenMangas :
             .addQueryParameter("perPage", "12")
             .addQueryParameter("tags_ids", tagIds)
             .addQueryParameter("date", System.currentTimeMillis().toString())
-            
         return GET(url.build(), headers)
     }
 
