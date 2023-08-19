@@ -2,7 +2,6 @@ package eu.kanade.tachiyomi.extension.es.yugenmangas
 
 import eu.kanade.tachiyomi.multisrc.heancms.Genre
 import eu.kanade.tachiyomi.multisrc.heancms.HeanCms
-import okhttp3.HttpUrl.Companion.toHttpUrl
 import java.text.SimpleDateFormat
 import java.util.TimeZone
 
