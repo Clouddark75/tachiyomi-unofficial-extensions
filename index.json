@@ -466,19 +466,19 @@
   {
     "name": "Tachiyomi: YugenMangas",
     "pkg": "eu.kanade.tachiyomi.extension.es.yugenmangas",
-    "apk": "tachiyomi-es.yugenmangas-v1.4.22.apk",
+    "apk": "tachiyomi-es.yugenmangas-v1.4.23.apk",
     "lang": "es",
-    "code": 22,
-    "version": "1.4.22",
+    "code": 23,
+    "version": "1.4.23",
     "nsfw": 1,
     "hasReadme": 0,
     "hasChangelog": 0,
     "sources": [
       {
-        "name": "YugenMangas",
+        "name": "Mango Scan",
         "lang": "es",
-        "id": "4657393995731164616",
-        "baseUrl": "https://yugenmangas.net",
+        "id": "5784725404441410876",
+        "baseUrl": "https://yugenmangas.lat",
         "versionId": 2,
         "hasCloudflare": 1
       }
