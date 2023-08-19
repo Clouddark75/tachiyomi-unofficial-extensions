@@ -6,7 +6,6 @@ import okhttp3.HttpUrl.Companion.toHttpUrl
 import java.text.SimpleDateFormat
 import java.util.TimeZone
 
-
 class YugenMangas :
     HeanCms(
         "Mango Scan",
