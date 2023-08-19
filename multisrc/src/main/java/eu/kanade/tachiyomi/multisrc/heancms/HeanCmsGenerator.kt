@@ -9,7 +9,7 @@ class HeanCmsGenerator : ThemeSourceGenerator {
 
     override val themeClass = "HeanCms"
 
-    override val baseVersionCode: Int = 16
+    override val baseVersionCode: Int = 17
 
     override val sources = listOf(
         SingleLang("YugenMangas", "https://yugenmangas.net", "es", isNsfw = true, overrideVersionCode = 6),
