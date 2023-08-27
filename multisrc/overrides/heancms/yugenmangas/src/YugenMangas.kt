@@ -8,7 +8,7 @@ import java.util.TimeZone
 class YugenMangas :
     HeanCms(
         "Mango Scan",
-        "https://yugenmangas.lat",
+        "https://yugenmangas.net",
         "es",
         "https://api.yugenmangas.net",
     ) {
@@ -16,7 +16,7 @@ class YugenMangas :
     // Site changed from Madara to HeanCms.
     override val versionId = 2
 
-    override val fetchAllTitles = true
+    override val slugStrategy = SlugStrategy.ID
     override val useNewQueryEndpoint = true
     override val coverPath: String = ""
 
