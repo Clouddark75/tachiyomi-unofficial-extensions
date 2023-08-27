@@ -16,9 +16,6 @@ import androidx.preference.SwitchPreferenceCompat
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
 
-
-
-
 class SkyMangas : MangaThemesia(
     "SkyMangas",
     "https://skymangas.com",
