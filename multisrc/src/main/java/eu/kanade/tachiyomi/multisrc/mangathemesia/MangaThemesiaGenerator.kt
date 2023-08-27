@@ -15,7 +15,7 @@ class MangaThemesiaGenerator : ThemeSourceGenerator {
     override val sources = listOf(
         SingleLang("Luminous Scans", "https://www.luminousscans.com", "en", overrideVersionCode = 1),
         SingleLang("Tecno Scan", "https://tecnoscann.com", "es", overrideVersionCode = 1),
-        SingleLang("SkyMangas", "https://skymangas.com", "es"),
+        SingleLang("SkyMangas", "https://skymangas.com", "es", overrideVersionCode = 1),
     )
 
     companion object {
