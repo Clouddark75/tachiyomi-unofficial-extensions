@@ -422,12 +422,12 @@
     ]
   },
   {
-    "name": "Tachiyomi: LeerCapitulo / OlympusScan.top",
+    "name": "Tachiyomi: LeerCapitulo",
     "pkg": "eu.kanade.tachiyomi.extension.es.leercapitulo",
-    "apk": "tachiyomi-es.leercapitulo-v1.4.5.apk",
+    "apk": "tachiyomi-es.leercapitulo-v1.4.6.apk",
     "lang": "es",
-    "code": 5,
-    "version": "1.4.5",
+    "code": 6,
+    "version": "1.4.6",
     "nsfw": 0,
     "hasReadme": 0,
     "hasChangelog": 0,
@@ -436,9 +436,30 @@
         "name": "LeerCapitulo",
         "lang": "es",
         "id": "5621901596522308538",
-        "baseUrl": "https://www.leercapitulo.com#, https://olympusscan.top",
+        "baseUrl": "https://www.leercapitulo.com",
         "versionId": 1,
         "hasCloudflare": 0
+      }
+    ]
+  },
+  {
+    "name": "Tachiyomi: SkyMangas",
+    "pkg": "eu.kanade.tachiyomi.extension.es.skymangas",
+    "apk": "tachiyomi-es.skymangas-v1.4.26.apk",
+    "lang": "es",
+    "code": 26,
+    "version": "1.4.26",
+    "nsfw": 0,
+    "hasReadme": 1,
+    "hasChangelog": 0,
+    "sources": [
+      {
+        "name": "SkyMangas",
+        "lang": "es",
+        "id": "8713024885922119175",
+        "baseUrl": "https://skymangas.com",
+        "versionId": 1,
+        "hasCloudflare": 1
       }
     ]
   },
@@ -466,10 +487,10 @@
   {
     "name": "Tachiyomi: YugenMangas",
     "pkg": "eu.kanade.tachiyomi.extension.es.yugenmangas",
-    "apk": "tachiyomi-es.yugenmangas-v1.4.23.apk",
+    "apk": "tachiyomi-es.yugenmangas-v1.4.24.apk",
     "lang": "es",
-    "code": 23,
-    "version": "1.4.23",
+    "code": 24,
+    "version": "1.4.24",
     "nsfw": 1,
     "hasReadme": 0,
     "hasChangelog": 0,
@@ -478,7 +499,7 @@
         "name": "Mango Scan",
         "lang": "es",
         "id": "5784725404441410876",
-        "baseUrl": "https://yugenmangas.lat",
+        "baseUrl": "https://yugenmangas.net",
         "versionId": 2,
         "hasCloudflare": 1
       }
