@@ -9,12 +9,6 @@ import org.jsoup.nodes.Document
 import java.lang.IllegalArgumentException
 import java.text.SimpleDateFormat
 import java.util.Locale
-import android.app.Application
-import android.content.SharedPreferences
-import androidx.preference.PreferenceScreen
-import androidx.preference.SwitchPreferenceCompat
-import uy.kohesive.injekt.Injekt
-import uy.kohesive.injekt.api.get
 
 class SkyMangas : MangaThemesia(
     "SkyMangas",
@@ -22,10 +16,6 @@ class SkyMangas : MangaThemesia(
     "es",
     dateFormat = SimpleDateFormat("MMMM dd, yyyy", Locale("es")),
 ) {
-
-    private val preferences: SharedPreferences by lazy {
-        Injekt.get<Application>().getSharedPreferences("source_$id", 0x0000)
-    }
     override fun pageListParse(document: Document): List<Page> {
         val script = document.selectFirst("div.readercontent > div.wrapper > script")
             ?: return super.pageListParse(document)
@@ -41,45 +31,13 @@ class SkyMangas : MangaThemesia(
                 json.parseToJsonElement(imageListJson).jsonArray
             } catch (_: IllegalArgumentException) {
                 emptyList()
-            val scriptPages = imageList.mapIndexed { i, jsonEl ->
-            var imageUrl = jsonEl.jsonPrimitive.content
-            if (getJetPackCDNPref()) {
-                imageUrl = imageUrl.replace(JETPACK_CDN_REGEX, "")             
             }
 
-                        Page(i, "", imageUrl)
-        }
-
-        return scriptPages
-    }
-     private fun getJetPackCDNPref(): Boolean = preferences.getBoolean(PREF_KEY_JETPACK_CDN, PREF_DEFAULT_VALUE_JETPACK_CDN)
-
-    override fun setupPreferenceScreen(screen: PreferenceScreen) {
-        disableJetPackCDNPreferences(screen)
-    }
-
-    private fun disableJetPackCDNPreferences(screen: PreferenceScreen) {
-        val prefJetPackCDN = SwitchPreferenceCompat(screen.context).apply {
-            key = PREF_KEY_JETPACK_CDN
-            title = PREF_TITLE_JETPACK_CDN
-            summary = PREF_SUMMARY_JETPACK_CDN
-            setDefaultValue(PREF_DEFAULT_VALUE_JETPACK_CDN)
-
-            setOnPreferenceChangeListener { _, newValue ->
-                val checkValue = newValue as Boolean
-                preferences.edit().putBoolean(PREF_KEY_JETPACK_CDN, checkValue).commit()
+            return imageList.mapIndexed { i, jsonEl ->
+                Page(i, document.location(), jsonEl.jsonPrimitive.content)
             }
         }
 
-        screen.addPreference(prefJetPackCDN)
-    }
-
-    companion object {
-        val JETPACK_CDN_REGEX = "i[0-3].wp.com/".toRegex()
-
-        const val PREF_TITLE_JETPACK_CDN = "Disable JetPack CDN"
-        const val PREF_KEY_JETPACK_CDN = "pref_key_jetpack_cdn"
-        const val PREF_SUMMARY_JETPACK_CDN = "Puede activar esta opción si las imágenes no cargan correctamente"
-        const val PREF_DEFAULT_VALUE_JETPACK_CDN = false
+        return super.pageListParse(document)
     }
 }
