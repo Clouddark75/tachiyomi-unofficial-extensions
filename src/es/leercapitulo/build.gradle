@@ -10,6 +10,7 @@ ext {
 }
 
 dependencies {
-    implementation(project(":lib-synchrony")
+    implementation(project(":lib-synchrony"))
+}
 
 apply from: "$rootDir/common.gradle"
