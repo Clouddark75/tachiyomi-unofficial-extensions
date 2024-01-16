@@ -1,8 +1,10 @@
 include(":core")
 
-listOf("dataimage", "unpacker", "cryptoaes", "textinterceptor").forEach {
-    include(":lib-$it")
-    project(":lib-$it").projectDir = File("lib/$it")
+// Load all modules under /lib
+File(rootDir, "lib").eachDir {
+    val libName = it.name
+    include(":lib-$libName")
+    project(":lib-$libName").projectDir = File("lib/$libName")
 }
 
 if (System.getenv("CI") == null || System.getenv("CI_MODULE_GEN") == "true") {
