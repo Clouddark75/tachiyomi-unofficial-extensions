@@ -89,29 +89,6 @@ class AnimeBBG : ParsedHttpSource() {
         date_upload = 0L
     }
 
-    override fun chapterListParse(response: okhttp3.Response): List<SChapter> {
-        val document = response.asJsoup()
-        val chapters = mutableListOf<SChapter>()
-
-        // Parse current page chapters
-        chapters.addAll(document.select(chapterListSelector()).map { chapterFromElement(it) })
-
-        // Check for next pages
-        var nextPageUrl = document.selectFirst(popularMangaNextPageSelector())?.attr("href")
-
-        while (!nextPageUrl.isNullOrEmpty()) {
-            val nextResponse = client.newCall(GET("$baseUrl$nextPageUrl", headers)).execute()
-            val nextDocument = nextResponse.asJsoup()
-
-            chapters.addAll(nextDocument.select(chapterListSelector()).map { chapterFromElement(it) })
-
-            nextPageUrl = nextDocument.selectFirst(popularMangaNextPageSelector())?.attr("href")
-            nextResponse.close()
-        }
-
-        return chapters.reversed() // Reverse to show latest chapters first
-    }
-
     override fun pageListParse(document: Document): List<Page> {
         return document.select(".media-container a").mapIndexed { index, element ->
             Page(index, imageUrl = element.attr("href"))
