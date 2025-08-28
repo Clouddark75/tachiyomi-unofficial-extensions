@@ -29,7 +29,6 @@ class AnimeBBG : ParsedHttpSource() {
         return SManga.create().apply {
             setUrlWithoutDomain(element.attr("href"))
             title = element.text().trim()
-            // We'll get thumbnail from manga details page since it's not in the list
         }
     }
 
@@ -61,32 +60,25 @@ class AnimeBBG : ParsedHttpSource() {
     // Manga details
     override fun mangaDetailsParse(document: Document): SManga {
         return SManga.create().apply {
-            // Title
             title = document.selectFirst("h1.p-title-value")?.text()?.trim() ?: ""
-
-            // Cover image
             thumbnail_url = document.selectFirst("img[alt='Resource banner']")?.attr("src")
 
-            // Alternative titles
             val altTitles = document.selectFirst("dd")?.html()?.split("<br>")
                 ?.map { it.trim() }?.filter { it.isNotEmpty() }
             if (!altTitles.isNullOrEmpty()) {
                 description = "Títulos alternativos: ${altTitles.joinToString(", ")}\n\n"
             }
 
-            // Genres
             val genres = document.select("dd .tagItem")
                 .map { it.text().trim() }
                 .filter { it.isNotEmpty() }
             genre = genres.joinToString(", ")
 
-            // Description
             val desc = document.selectFirst(".bbWrapper")?.text()?.trim()
             if (!desc.isNullOrEmpty()) {
                 description = (description ?: "") + desc
             }
 
-            // Status - you might need to add logic to determine status
             status = SManga.UNKNOWN
         }
     }
@@ -96,6 +88,50 @@ class AnimeBBG : ParsedHttpSource() {
         return GET("$baseUrl${manga.url}/capitulos", headers)
     }
 
+    override fun chapterListSelector() = ".structItem-title a"
+
+    override fun chapterFromElement(element: Element): SChapter {
+        return SChapter.create().apply {
+            setUrlWithoutDomain(element.attr("href"))
+            name = element.text().trim()
+            date_upload = 0L
+        }
+    }
+
+    override fun chapterListParse(response: okhttp3.Response): List<SChapter> {
+        val document = response.asJsoup()
+        val chapters = mutableListOf<SChapter>()
+
+        chapters.addAll(document.select(chapterListSelector()).map { chapterFromElement(it) })
+
+        var nextPageUrl = document.selectFirst("a.pageNavSimple-el--next")?.attr("href")
+
+        while (!nextPageUrl.isNullOrEmpty()) {
+            val nextResponse = client.newCall(GET("$baseUrl$nextPageUrl", headers)).execute()
+            val nextDocument = nextResponse.asJsoup()
+
+            chapters.addAll(nextDocument.select(chapterListSelector()).map { chapterFromElement(it) })
+
+            nextPageUrl = nextDocument.selectFirst("a.pageNavSimple-el--next")?.attr("href")
+            nextResponse.close()
+        }
+
+        return chapters.reversed()
+    }
+
+    // Page list
+    override fun pageListParse(document: Document): List<Page> {
+        return document.select(".media-container a").mapIndexed { index, element ->
+            Page(index, "", element.attr("href"))
+        }
+    }
+
+    override fun imageUrlParse(document: Document): String {
+        return document.selectFirst("img")?.attr("src") ?: ""
+    }
+
+    override fun getFilterList() = FilterList()
+}
     override fun chapterListSelector() = ".structItem-title a"
 
     override fun chapterFromElement(element: Element): SChapter {
