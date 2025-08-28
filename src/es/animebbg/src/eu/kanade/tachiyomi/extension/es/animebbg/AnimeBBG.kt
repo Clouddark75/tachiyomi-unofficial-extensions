@@ -60,20 +60,20 @@ class AnimeBBG : ParsedHttpSource() {
     override fun mangaDetailsParse(document: Document): SManga = SManga.create().apply {
         title = document.selectFirst("h1.p-title-value")?.text()?.trim() ?: ""
         thumbnail_url = document.selectFirst("img[alt='Resource banner']")?.attr("src")
-        
+
         val altTitles = document.selectFirst("dd")?.html()?.split("<br>")
             ?.map { it.trim() }?.filter { it.isNotEmpty() }
         var desc = ""
         if (!altTitles.isNullOrEmpty()) {
             desc = "Títulos alternativos: ${altTitles.joinToString(", ")}\n\n"
         }
-        
+
         val mainDesc = document.selectFirst(".bbWrapper")?.text()?.trim()
         if (!mainDesc.isNullOrEmpty()) {
             desc += mainDesc
         }
         description = desc
-        
+
         genre = document.select("dd .tagItem").joinToString { it.text().trim() }
         status = SManga.UNKNOWN
     }
