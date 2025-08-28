@@ -1,6 +1,5 @@
 ext {
     extName = 'AnimeBBG'
-    pkgNameSuffix = 'es.animebbg'
     extClass = '.AnimeBBG'
     extVersionCode = 1
     baseUrl = 'https://animebbg.net'
