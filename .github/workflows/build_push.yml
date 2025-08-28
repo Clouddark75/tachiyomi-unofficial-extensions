@@ -55,6 +55,9 @@ jobs:
         with:
           cache-read-only: true
 
+      - name: Grant execute permission on gradlew
+        run: chmod +x ./gradlew
+
       - name: Get last successful CI commit
         uses: nrwl/nx-set-shas@826660b82addbef3abff5fa871492ebad618c9e1 # v4.3.3
         with:
@@ -91,6 +94,9 @@ jobs:
         with:
           cache-read-only: ${{ matrix.chunk.number > 1 }}
 
+      - name: Grant execute permission on gradlew
+        run: chmod +x ./gradlew
+
       - name: Prepare signing key
         run: |
           echo ${{ secrets.SIGNING_KEY }} | base64 -d > signingkey.jks
@@ -106,7 +112,7 @@ jobs:
 
       - name: Upload APKs (${{ matrix.chunk.number }})
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        if: "github.repository == 'keiyoushi/extensions-source'"
+        if: "github.repository == 'Clouddark75/tachiyomi-unofficial-extensions'"
         with:
           name: "individual-apks-${{ matrix.chunk.number }}"
           path: "**/*.apk"
@@ -118,7 +124,7 @@ jobs:
   publish:
     name: Publish extension repo
     needs: [prepare, build]
-    if: "github.repository == 'keiyoushi/extensions-source'"
+    if: "github.repository == 'Clouddark75/tachiyomi-unofficial-extensions'"
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -140,11 +146,14 @@ jobs:
           path: main
           persist-credentials: false
 
+      - name: Grant execute permission on gradlew
+        run: chmod +x ./gradlew
+
       - name: Create repo artifacts
         run: |
           cd main
           python ./.github/scripts/move-built-apks.py
-          INSPECTOR_LINK="$(curl -s "https://api.github.com/repos/keiyoushi/extensions-inspector/releases/latest" | jq -r '.assets[0].browser_download_url')"
+          INSPECTOR_LINK="$(curl -s "https://api.github.com/repos/Clouddark75/tachiyomi-extensions-inspector/releases/latest" | jq -r '.assets[0].browser_download_url')"
           curl -L "$INSPECTOR_LINK" -o ./Inspector.jar
           java -jar ./Inspector.jar "repo/apk" "output.json" "tmp"
           python ./.github/scripts/create-repo.py
@@ -152,8 +161,6 @@ jobs:
       - name: Checkout repo branch
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
-          repository: keiyoushi/extensions
-          token: ${{ secrets.BOT_PAT }}
           ref: repo
           path: repo
           persist-credentials: true
