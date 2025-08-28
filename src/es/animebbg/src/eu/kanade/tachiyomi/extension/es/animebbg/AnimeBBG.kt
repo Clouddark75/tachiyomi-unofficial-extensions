@@ -26,7 +26,7 @@ class AnimeBBG : ParsedHttpSource() {
     override fun latestUpdatesNextPageSelector(): String = popularMangaNextPageSelector()
     override fun searchMangaNextPageSelector(): String = popularMangaNextPageSelector()
 
-    override fun chapterListSelector(): String = ".structItem-title a"
+    override fun chapterListSelector(): String = ".structItem--resourceAlbum .structItem-title a"
 
     override fun popularMangaRequest(page: Int): Request {
         return GET("$baseUrl/comics/?page=$page", headers)
@@ -83,9 +83,33 @@ class AnimeBBG : ParsedHttpSource() {
     }
 
     override fun chapterFromElement(element: Element): SChapter = SChapter.create().apply {
-        setUrlWithoutDomain(element.attr("href"))
+        val link = element.attr("href")
+        setUrlWithoutDomain(link)
         name = element.text().trim()
         date_upload = 0L
+    }
+
+    override fun chapterListParse(response: okhttp3.Response): List<SChapter> {
+        val document = response.asJsoup()
+        val chapters = mutableListOf<SChapter>()
+
+        // Parse current page chapters
+        chapters.addAll(document.select(chapterListSelector()).map { chapterFromElement(it) })
+
+        // Check for next pages
+        var nextPageUrl = document.selectFirst(popularMangaNextPageSelector())?.attr("href")
+
+        while (!nextPageUrl.isNullOrEmpty()) {
+            val nextResponse = client.newCall(GET("$baseUrl$nextPageUrl", headers)).execute()
+            val nextDocument = nextResponse.asJsoup()
+
+            chapters.addAll(nextDocument.select(chapterListSelector()).map { chapterFromElement(it) })
+
+            nextPageUrl = nextDocument.selectFirst(popularMangaNextPageSelector())?.attr("href")
+            nextResponse.close()
+        }
+
+        return chapters.reversed() // Reverse to show latest chapters first
     }
 
     override fun pageListParse(document: Document): List<Page> {
