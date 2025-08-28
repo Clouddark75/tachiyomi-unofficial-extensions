@@ -18,223 +18,81 @@ class AnimeBBG : ParsedHttpSource() {
     override val lang = "es"
     override val supportsLatest = true
 
-    // Popular manga
+    override fun popularMangaSelector(): String = "a[data-tp-primary='on']"
+    override fun latestUpdatesSelector(): String = popularMangaSelector()
+    override fun searchMangaSelector(): String = popularMangaSelector()
+
+    override fun popularMangaNextPageSelector(): String = "a.pageNavSimple-el--next"
+    override fun latestUpdatesNextPageSelector(): String = popularMangaNextPageSelector()
+    override fun searchMangaNextPageSelector(): String = popularMangaNextPageSelector()
+
+    override fun chapterListSelector(): String = ".structItem-title a"
+
     override fun popularMangaRequest(page: Int): Request {
         return GET("$baseUrl/comics/?page=$page", headers)
     }
 
-    override fun popularMangaSelector() = "a[data-tp-primary='on']"
-
-    override fun popularMangaFromElement(element: Element): SManga {
-        return SManga.create().apply {
-            setUrlWithoutDomain(element.attr("href"))
-            title = element.text().trim()
-        }
-    }
-
-    override fun popularMangaNextPageSelector() = "a.pageNavSimple-el--next"
-
-    // Latest manga - same structure as popular
     override fun latestUpdatesRequest(page: Int): Request {
         return GET("$baseUrl/comics/?page=$page", headers)
     }
 
-    override fun latestUpdatesSelector() = popularMangaSelector()
-    override fun latestUpdatesFromElement(element: Element): SManga = popularMangaFromElement(element)
-    override fun latestUpdatesNextPageSelector() = popularMangaNextPageSelector()
-
-    // Search manga
     override fun searchMangaRequest(page: Int, query: String, filters: FilterList): Request {
-        val url = "$baseUrl/comics/".toHttpUrl().newBuilder()
-        if (query.isNotEmpty()) {
-            url.addQueryParameter("search", query)
+        val url = baseUrl.toHttpUrl().newBuilder().apply {
+            addPathSegment("comics")
+            addPathSegment("")
+            addQueryParameter("page", page.toString())
+            if (query.isNotEmpty()) {
+                addQueryParameter("search", query)
+            }
         }
-        url.addQueryParameter("page", page.toString())
-        return GET(url.build().toString(), headers)
+        return GET(url.build(), headers)
     }
 
-    override fun searchMangaSelector() = popularMangaSelector()
+    override fun popularMangaFromElement(element: Element): SManga = SManga.create().apply {
+        setUrlWithoutDomain(element.attr("href"))
+        title = element.text().trim()
+    }
+
+    override fun latestUpdatesFromElement(element: Element): SManga = popularMangaFromElement(element)
+
     override fun searchMangaFromElement(element: Element): SManga = popularMangaFromElement(element)
-    override fun searchMangaNextPageSelector() = popularMangaNextPageSelector()
 
-    // Manga details
-    override fun mangaDetailsParse(document: Document): SManga {
-        return SManga.create().apply {
-            title = document.selectFirst("h1.p-title-value")?.text()?.trim() ?: ""
-            thumbnail_url = document.selectFirst("img[alt='Resource banner']")?.attr("src")
-
-            val altTitles = document.selectFirst("dd")?.html()?.split("<br>")
-                ?.map { it.trim() }?.filter { it.isNotEmpty() }
-            if (!altTitles.isNullOrEmpty()) {
-                description = "Títulos alternativos: ${altTitles.joinToString(", ")}\n\n"
-            }
-
-            val genres = document.select("dd .tagItem")
-                .map { it.text().trim() }
-                .filter { it.isNotEmpty() }
-            genre = genres.joinToString(", ")
-
-            val desc = document.selectFirst(".bbWrapper")?.text()?.trim()
-            if (!desc.isNullOrEmpty()) {
-                description = (description ?: "") + desc
-            }
-
-            status = SManga.UNKNOWN
+    override fun mangaDetailsParse(document: Document): SManga = SManga.create().apply {
+        title = document.selectFirst("h1.p-title-value")?.text()?.trim() ?: ""
+        thumbnail_url = document.selectFirst("img[alt='Resource banner']")?.attr("src")
+        
+        val altTitles = document.selectFirst("dd")?.html()?.split("<br>")
+            ?.map { it.trim() }?.filter { it.isNotEmpty() }
+        var desc = ""
+        if (!altTitles.isNullOrEmpty()) {
+            desc = "Títulos alternativos: ${altTitles.joinToString(", ")}\n\n"
         }
+        
+        val mainDesc = document.selectFirst(".bbWrapper")?.text()?.trim()
+        if (!mainDesc.isNullOrEmpty()) {
+            desc += mainDesc
+        }
+        description = desc
+        
+        genre = document.select("dd .tagItem").joinToString { it.text().trim() }
+        status = SManga.UNKNOWN
     }
 
-    // Chapter list
     override fun chapterListRequest(manga: SManga): Request {
         return GET("$baseUrl${manga.url}/capitulos", headers)
     }
 
-    override fun chapterListSelector() = ".structItem-title a"
-
-    override fun chapterFromElement(element: Element): SChapter {
-        return SChapter.create().apply {
-            setUrlWithoutDomain(element.attr("href"))
-            name = element.text().trim()
-            date_upload = 0L
-        }
+    override fun chapterFromElement(element: Element): SChapter = SChapter.create().apply {
+        setUrlWithoutDomain(element.attr("href"))
+        name = element.text().trim()
+        date_upload = 0L
     }
 
-    override fun chapterListParse(response: okhttp3.Response): List<SChapter> {
-        val document = response.asJsoup()
-        val chapters = mutableListOf<SChapter>()
-
-        chapters.addAll(document.select(chapterListSelector()).map { chapterFromElement(it) })
-
-        var nextPageUrl = document.selectFirst("a.pageNavSimple-el--next")?.attr("href")
-
-        while (!nextPageUrl.isNullOrEmpty()) {
-            val nextResponse = client.newCall(GET("$baseUrl$nextPageUrl", headers)).execute()
-            val nextDocument = nextResponse.asJsoup()
-
-            chapters.addAll(nextDocument.select(chapterListSelector()).map { chapterFromElement(it) })
-
-            nextPageUrl = nextDocument.selectFirst("a.pageNavSimple-el--next")?.attr("href")
-            nextResponse.close()
-        }
-
-        return chapters.reversed()
-    }
-
-    // Page list
     override fun pageListParse(document: Document): List<Page> {
         return document.select(".media-container a").mapIndexed { index, element ->
-            Page(index, "", element.attr("href"))
+            Page(index, imageUrl = element.attr("href"))
         }
     }
 
-    override fun imageUrlParse(document: Document): String {
-        return document.selectFirst("img")?.attr("src") ?: ""
-    }
-
-    override fun getFilterList() = FilterList()
-}
-    override fun chapterListSelector() = ".structItem-title a"
-
-    override fun chapterFromElement(element: Element): SChapter {
-        return SChapter.create().apply {
-            setUrlWithoutDomain(element.attr("href"))
-            name = element.text().trim()
-            // You might want to add date parsing if available
-            date_upload = 0L
-        }
-    }
-
-    // Handle chapter list pagination
-    override fun chapterListParse(response: okhttp3.Response): List<SChapter> {
-        val document = response.asJsoup()
-        val chapters = mutableListOf<SChapter>()
-
-        // Parse current page chapters
-        chapters.addAll(document.select(chapterListSelector()).map { chapterFromElement(it) })
-
-        // Check for next pages
-        var nextPageUrl = document.selectFirst("a.pageNavSimple-el--next")?.attr("href")
-
-        while (!nextPageUrl.isNullOrEmpty()) {
-            val nextResponse = client.newCall(GET("$baseUrl$nextPageUrl", headers)).execute()
-            val nextDocument = nextResponse.asJsoup()
-
-            chapters.addAll(nextDocument.select(chapterListSelector()).map { chapterFromElement(it) })
-
-            nextPageUrl = nextDocument.selectFirst("a.pageNavSimple-el--next")?.attr("href")
-            nextResponse.close()
-        }
-
-        return chapters.reversed() // Reverse to show latest chapters first
-    }
-
-    // Page list
-    override fun pageListParse(document: Document): List<Page> {
-        return document.select(".media-container a").mapIndexed { index, element ->
-            Page(index, "", element.attr("href"))
-        }
-    }
-
-    override fun imageUrlParse(document: Document): String {
-        return document.selectFirst("img")?.attr("src") ?: ""
-    }
-
-    // Additional methods that might be needed
-    override fun getFilterList() = FilterList()
-}
-}    override fun chapterListRequest(manga: SManga): Request {
-        return GET("$baseUrl${manga.url}/capitulos", headers)
-    }
-
-    override fun chapterListSelector() = ".structItem-title a"
-
-    override fun chapterFromElement(element: Element): SChapter {
-        return SChapter.create().apply {
-            setUrlWithoutDomain(element.attr("href"))
-            name = element.text().trim()
-            // You might want to add date parsing if available
-            date_upload = 0L
-        }
-    }
-
-    // Handle chapter list pagination
-    override fun chapterListParse(response: okhttp3.Response): List<SChapter> {
-        val document = response.asJsoup()
-        val chapters = mutableListOf<SChapter>()
-        
-        // Parse current page chapters
-        chapters.addAll(document.select(chapterListSelector()).map { chapterFromElement(it) })
-        
-        // Check for next pages
-        var nextPageUrl = document.selectFirst("a.pageNavSimple-el--next")?.attr("href")
-        
-        while (!nextPageUrl.isNullOrEmpty()) {
-            val nextResponse = client.newCall(GET("$baseUrl$nextPageUrl", headers)).execute()
-            val nextDocument = nextResponse.asJsoup()
-            
-            chapters.addAll(nextDocument.select(chapterListSelector()).map { chapterFromElement(it) })
-            
-            nextPageUrl = nextDocument.selectFirst("a.pageNavSimple-el--next")?.attr("href")
-            nextResponse.close()
-        }
-        
-        return chapters.reversed() // Reverse to show latest chapters first
-    }
-
-    // Page list
-    override fun pageListParse(document: Document): List<Page> {
-        return document.select(".media-container a").mapIndexed { index, element ->
-            Page(index, "", element.attr("href"))
-        }
-    }
-
-    override fun imageUrlParse(document: Document): String {
-        return document.selectFirst("img")?.attr("src") ?: ""
-    }
-
-    // Additional methods that might be needed
-    override fun getFilterList() = FilterList()
-
-    companion object {
-        private val DATE_FORMAT = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
-    }
+    override fun imageUrlParse(document: Document): String = ""
 }
