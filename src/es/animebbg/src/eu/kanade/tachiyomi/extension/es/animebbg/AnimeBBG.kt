@@ -1,6 +1,7 @@
 package eu.kanade.tachiyomi.extension.es.animebbg
 
 import eu.kanade.tachiyomi.network.GET
+import eu.kanade.tachiyomi.source.model.Filter
 import eu.kanade.tachiyomi.source.model.FilterList
 import eu.kanade.tachiyomi.source.model.MangasPage
 import eu.kanade.tachiyomi.source.model.Page
@@ -152,7 +153,7 @@ class AnimeBBG : ParsedHttpSource() {
     }
 
 // SobreCarga: usar filtros en la petición de populares
-    override fun popularMangaRequest(page: Int, filters: FilterList): Request {
+    fun popularMangaRequest(page: Int, filters: FilterList): Request {
         val typeSlug = getSelectedTypeSlug(filters)
         val tagSlug = getSelectedTagSlug(filters)
 
@@ -172,7 +173,7 @@ class AnimeBBG : ParsedHttpSource() {
     }
 
 // SobreCarga: usar filtros en la petición de recientes (latest)
-    override fun latestUpdatesRequest(page: Int, filters: FilterList): Request {
+    fun latestUpdatesRequest(page: Int, filters: FilterList): Request {
         val typeSlug = getSelectedTypeSlug(filters)
         val tagSlug = getSelectedTagSlug(filters)
 
