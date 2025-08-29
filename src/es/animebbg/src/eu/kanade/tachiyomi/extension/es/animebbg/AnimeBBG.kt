@@ -2,6 +2,7 @@ package eu.kanade.tachiyomi.extension.es.animebbg
 
 import eu.kanade.tachiyomi.network.GET
 import eu.kanade.tachiyomi.source.model.FilterList
+import eu.kanade.tachiyomi.source.model.MangasPage
 import eu.kanade.tachiyomi.source.model.Page
 import eu.kanade.tachiyomi.source.model.SChapter
 import eu.kanade.tachiyomi.source.model.SManga
@@ -73,14 +74,14 @@ class AnimeBBG : ParsedHttpSource() {
 
     override fun searchMangaFromElement(element: Element): SManga {
         val manga = SManga.create()
-        
+
         // Buscar el enlace al comic dentro del resultado de búsqueda
         val linkElement = element.selectFirst("a[href*='/comics/']")
         if (linkElement != null) {
             manga.setUrlWithoutDomain(linkElement.attr("href"))
-            
+
             // Extraer título del texto del enlace o del snippet
-            val titleElement = element.selectFirst(".gsc-title-link") 
+            val titleElement = element.selectFirst(".gsc-title-link")
                 ?: element.selectFirst("a[href*='/comics/']")
             manga.title = titleElement?.text()?.trim()
                 ?.replace(Regex("\\s*ES\\s*"), "")
@@ -92,33 +93,33 @@ class AnimeBBG : ParsedHttpSource() {
                 val response = client.newCall(GET(baseUrl + manga.url, headers)).execute()
                 val detailsDoc = org.jsoup.Jsoup.parse(response.body!!.string())
                 response.close()
-                
+
                 manga.thumbnail_url = detailsDoc.selectFirst("img[alt='Resource banner']")?.attr("src")
             } catch (e: Exception) {
                 // Si falla, continuar sin thumbnail
                 manga.thumbnail_url = ""
             }
         }
-        
+
         return manga
     }
 
     override fun searchMangaParse(response: Response): MangasPage {
         val document = response.asJsoup()
-        
+
         // Filtrar resultados para incluir solo comics y excluir capítulos/updates/temas
         val mangas = document.select(".cse-result").mapNotNull { element ->
             val linkElement = element.selectFirst("a")
             val href = linkElement?.attr("href") ?: ""
-            
+
             // Filtrar solo enlaces que sean de comics y no de capítulos, updates o temas
-            if (href.contains("/comics/") && 
-                !href.contains("/update/") && 
-                !href.contains("/capitulo") && 
+            if (href.contains("/comics/") &&
+                !href.contains("/update/") &&
+                !href.contains("/capitulo") &&
                 !href.contains("/temas/") &&
                 !href.contains("Capítulo") &&
-                !href.contains("Capitulo")) {
-                
+                !href.contains("Capitulo")
+            ) {
                 try {
                     searchMangaFromElement(element)
                 } catch (e: Exception) {
