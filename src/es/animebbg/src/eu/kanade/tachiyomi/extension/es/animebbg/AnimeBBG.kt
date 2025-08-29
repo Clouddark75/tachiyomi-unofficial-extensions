@@ -159,7 +159,7 @@ class AnimeBBG : ParsedHttpSource() {
         val tagsFilter = filters.find { it is TagsFilter } as? TagsFilter ?: return null
         val checkedIndex = tagsFilter.state.indexOfFirst { it.state } // state es Array<CheckBox>
         return if (checkedIndex >= 0) TAGS[checkedIndex].second else null
-  }
+    }
 
     // Petición para populares usando filtros (quita 'override' si la firma base no existe)
     fun popularMangaRequest(page: Int, filters: FilterList): Request {
@@ -181,8 +181,8 @@ class AnimeBBG : ParsedHttpSource() {
         return GET("$baseUrl/comics/?page=$page", headers)
     }
 
-     // Petición para recientes (latest) usando filtros (quita 'override' si la firma base no existe)
-     fun latestUpdatesRequest(page: Int, filters: FilterList): Request {
+    // Petición para recientes (latest) usando filtros (quita 'override' si la firma base no existe)
+    fun latestUpdatesRequest(page: Int, filters: FilterList): Request {
         val typeSlug = getSelectedTypeSlug(filters)
         val tagSlug = getSelectedTagSlug(filters)
 
