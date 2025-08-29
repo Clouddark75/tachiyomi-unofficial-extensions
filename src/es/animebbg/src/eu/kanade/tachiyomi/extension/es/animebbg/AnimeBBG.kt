@@ -113,7 +113,6 @@ class AnimeBBG : ParsedHttpSource() {
     }
 
     override fun chapterListRequest(manga: SManga) = GET("$baseUrl${manga.url}/capitulos", headers)
-    }
 
     override fun chapterFromElement(element: Element): SChapter = SChapter.create().apply {
         setUrlWithoutDomain(element.attr("href"))
