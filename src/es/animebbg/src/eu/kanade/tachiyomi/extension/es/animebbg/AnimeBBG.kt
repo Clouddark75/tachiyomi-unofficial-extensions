@@ -68,7 +68,17 @@ class AnimeBBG : ParsedHttpSource() {
             desc = "Títulos alternativos: ${altTitles.joinToString(", ")}\n\n"
         }
 
-        val mainDesc = document.selectFirst(".bbWrapper")?.text()?.trim()
+        val mainDesc = document.selectFirst(".bbWrapper")?.let { wrapper ->
+            val html = wrapper.html()
+            // Find the text before the first <br> or <h3> tag
+            val endIndex = minOf(
+                html.indexOf("<br"),
+                html.indexOf("<h3")
+            ).let { if (it == -1) html.length else it }
+            
+            // Extract just the first paragraph and clean it
+            html.substring(0, endIndex).replace(Regex("<[^>]*>"), "").trim()
+        }
         if (!mainDesc.isNullOrEmpty()) {
             desc += mainDesc
         }
