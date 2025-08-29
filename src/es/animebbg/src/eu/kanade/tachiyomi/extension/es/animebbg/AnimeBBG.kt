@@ -114,7 +114,7 @@ class AnimeBBG : ParsedHttpSource() {
             } catch (_: Exception) {
                 0L
             }
-         }
+        }
         // Buscar fecha en el contenedor del capítulo
         val dateElement = element.closest(".structItem")?.selectFirst("time")
         date_upload = dateElement?.attr("datetime")?.let {
