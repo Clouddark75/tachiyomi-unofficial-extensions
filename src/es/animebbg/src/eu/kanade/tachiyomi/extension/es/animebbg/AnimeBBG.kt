@@ -60,7 +60,7 @@ class AnimeBBG : ParsedHttpSource() {
         }
 
         if (genreFilter != null && genreFilter.state != 0) {
-            val genreUrl = "$baseUrl/tags/${getGenreList()[genreFilter.state].second}/"
+            val genreUrl = "$baseUrl/tags/${genreList[genreFilter.state].second}/"
             return GET("$genreUrl?page=$page", headers)
         }
 
@@ -181,24 +181,28 @@ class AnimeBBG : ParsedHttpSource() {
 
     private class GenreFilter : Filter.Select<String>(
         "Género",
-        getGenreList().map { it.first }.toTypedArray(),
+        genreList.map { it.first }.toTypedArray(),
     )
 
-    private fun getGenreList() = listOf(
-        "Todos" to "",
-        "Acción" to "accion",
-        "Recuentos de la vida" to "recuentos-de-la-vida",
-        "Aventura" to "aventura",
-        "Comedia" to "comedia",
-        "Drama" to "drama",
-        "Fantasía" to "fantasia",
-        "Magia" to "magia",
-        "Webcomic" to "webcomic",
-        "Harem" to "harem",
-        "Reencarnación" to "reencarnacion",
-        "Ciencia ficción" to "ciencia-ficcion",
-        "Supervivencia" to "supervivencia",
-    )
+    private fun getGenreList() = genreList
+
+    companion object {
+        private val genreList = listOf(
+            "Todos" to "",
+            "Acción" to "accion",
+            "Recuentos de la vida" to "recuentos-de-la-vida",
+            "Aventura" to "aventura",
+            "Comedia" to "comedia",
+            "Drama" to "drama",
+            "Fantasía" to "fantasia",
+            "Magia" to "magia",
+            "Webcomic" to "webcomic",
+            "Harem" to "harem",
+            "Reencarnación" to "reencarnacion",
+            "Ciencia ficción" to "ciencia-ficcion",
+            "Supervivencia" to "supervivencia",
+        )
+    }
 
     private inline fun <reified T> Iterable<*>.findInstance() = find { it is T } as? T
 
