@@ -135,11 +135,16 @@ class AnimeBBG : ParsedHttpSource() {
         }
     }
 
-    override fun pageListParse(document: Document): List<Page> {
-        return document.select(".media-container a").mapIndexed { index, element ->
-            Page(index, imageUrl = element.attr("href"))
-        }
+    override fun chapterListParse(response: Response): List<SChapter> {
+        return super.chapterListParse(response).reversed()
     }
+
+    override fun pageListParse(document: Document): List<Page> {
+        return document.select("div#reader img").mapIndexed { i, img ->
+                val url = img.attr("src").ifEmpty { img.attr("data-src") }
+                Page(i, "", if (url.startsWith("http")) url else baseUrl + url)
+        }
+     }
 
     override fun imageUrlParse(document: Document): String = ""
 }
