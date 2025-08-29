@@ -28,7 +28,7 @@ class AnimeBBG : ParsedHttpSource() {
     override fun latestUpdatesNextPageSelector(): String = popularMangaNextPageSelector()
     override fun searchMangaNextPageSelector(): String = popularMangaNextPageSelector()
 
-    override fun chapterListSelector(): String = ".structItem--thread .structItem-title a"
+    override fun chapterListSelector(): String = "div.structItem-title a"
 
     override fun popularMangaRequest(page: Int): Request {
         return GET("$baseUrl/comics/?page=$page", headers)
