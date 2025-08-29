@@ -22,13 +22,13 @@ class AnimeBBG : ParsedHttpSource() {
 
     override fun popularMangaSelector(): String = "a[data-tp-primary='on']"
     override fun latestUpdatesSelector(): String = popularMangaSelector()
-    
+
     // Selector específico para búsqueda que filtra solo comics
     override fun searchMangaSelector(): String = ".cse-result:has(a[href*='/comics/'])"
 
     override fun popularMangaNextPageSelector(): String = "a.pageNavSimple-el--next"
     override fun latestUpdatesNextPageSelector(): String = popularMangaNextPageSelector()
-    
+
     // Selector para paginación en búsqueda
     override fun searchMangaNextPageSelector(): String = "a[aria-label='Go to the next page']"
 
