@@ -53,7 +53,7 @@ class AnimeBBG : ParsedHttpSource() {
         val manga = SManga.create()
         var url = element.select("a").attr("href")
         if (!url.endsWith("/")) {
-             url += "/"
+            url += "/"
         }
         manga.setUrlWithoutDomain(url)
         manga.title = element.select("h3").text()
