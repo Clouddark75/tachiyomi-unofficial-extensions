@@ -52,8 +52,8 @@ class AnimeBBG : ParsedHttpSource() {
     override fun popularMangaFromElement(element: Element): SManga {
         val manga = SManga.create()
         var url = element.select("a").attr("href")
-        if (!url.endsWith("/")) {
-      url += "/"
+            if (!url.endsWith("/")) {
+                 url += "/"
         }
         manga.setUrlWithoutDomain(url)
         manga.title = element.select("h3").text()
