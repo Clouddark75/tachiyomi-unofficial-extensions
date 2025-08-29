@@ -49,7 +49,7 @@ class AnimeBBG : ParsedHttpSource() {
         "Tipo",
         TYPE_OPTIONS,
     )
-    }
+  }
     // Filtro para géneros (checkboxes) - crear instancias concretas de CheckBox
     private class TagsFilter(tags: Array<Pair<String, String>>) : Filter.Group<Filter.CheckBox>(
         "Géneros",
