@@ -108,6 +108,13 @@ class AnimeBBG : ParsedHttpSource() {
         setUrlWithoutDomain(element.attr("href"))
         name = element.text().trim()
 
+        // Buscar fecha en el contenedor del capítulo
+        val dateElement = element.closest(".structItem")?.selectFirst("time")
+        date_upload = dateElement?.attr("datetime")?.let {
+            parseDate(it)
+        } ?: 0L
+    }
+
         private fun parseDate(date: String): Long {
             return try {
                 java.time.OffsetDateTime.parse(date).toInstant().toEpochMilli()
@@ -115,12 +122,6 @@ class AnimeBBG : ParsedHttpSource() {
                 0L
             }
         }
-        // Buscar fecha en el contenedor del capítulo
-        val dateElement = element.closest(".structItem")?.selectFirst("time")
-        date_upload = dateElement?.attr("datetime")?.let {
-            parseDate(it)
-        } ?: 0L
-    }
 
     override fun pageListParse(document: Document): List<Page> {
         return document.select(".media-container a").mapIndexed { index, element ->
