@@ -6,6 +6,7 @@ import eu.kanade.tachiyomi.source.model.Page
 import eu.kanade.tachiyomi.source.model.SChapter
 import eu.kanade.tachiyomi.source.model.SManga
 import eu.kanade.tachiyomi.source.online.ParsedHttpSource
+import java.time.OffsetDateTime
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.Request
 import org.jsoup.nodes.Document
@@ -107,6 +108,13 @@ class AnimeBBG : ParsedHttpSource() {
         setUrlWithoutDomain(element.attr("href"))
         name = element.text().trim()
 
+    private fun parseDate(date: String): Long {
+    return try {
+        java.time.OffsetDateTime.parse(date).toInstant().toEpochMilli()
+        } catch (_: Exception) {
+        0L
+      }
+   }
         // Buscar fecha en el contenedor del capítulo
         val dateElement = element.closest(".structItem")?.selectFirst("time")
         date_upload = dateElement?.attr("datetime")?.let {
