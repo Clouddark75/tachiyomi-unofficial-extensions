@@ -109,6 +109,7 @@ class AnimeBBG : ParsedHttpSource() {
         "Tipo",
         arrayOf("Cualquiera", "manga.130", "manhua.132", "manhwa.131"),
     )
+
 // Filtro para géneros (checkboxes)
     private class TagsFilter(tags: Array<Pair<String, String>>) : Filter.Group<Filter.CheckBox>(
         "Géneros",
@@ -168,7 +169,7 @@ class AnimeBBG : ParsedHttpSource() {
         }
 
         return GET("$baseUrl/comics/?page=$page", headers)
-       }
+    }
 
 // SobreCarga: usar filtros en la petición de recientes (latest)
     override fun latestUpdatesRequest(page: Int, filters: FilterList): Request {
