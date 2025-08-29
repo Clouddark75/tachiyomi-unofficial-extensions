@@ -152,14 +152,14 @@ class AnimeBBG : ParsedHttpSource() {
         val typeFilter = filters.find { it is SeriesTypeFilter } as? SeriesTypeFilter ?: return ""
         val idx = typeFilter.state // Filter.Select.state es Int (índice)
         return if (idx <= 0) "" else TYPE_OPTIONS.getOrNull(idx) ?: ""
-   }
+  }
 
     // Obtener primer slug seleccionado de tags (o null)
     private fun getSelectedTagSlug(filters: FilterList): String? {
         val tagsFilter = filters.find { it is TagsFilter } as? TagsFilter ?: return null
         val checkedIndex = tagsFilter.state.indexOfFirst { it.state } // state es Array<CheckBox>
         return if (checkedIndex >= 0) TAGS[checkedIndex].second else null
-   }
+  }
 
     // Petición para populares usando filtros (quita 'override' si la firma base no existe)
     fun popularMangaRequest(page: Int, filters: FilterList): Request {
@@ -167,15 +167,15 @@ class AnimeBBG : ParsedHttpSource() {
         val tagSlug = getSelectedTagSlug(filters)
 
         if (typeSlug.isNotEmpty()) {
-                val basePath = "$baseUrl/comics/ct/$typeSlug/"
-                val paged = if (page <= 1) basePath else "$basePath?page=$page"
-                return GET(paged, headers)
+            val basePath = "$baseUrl/comics/ct/$typeSlug/"
+            val paged = if (page <= 1) basePath else "$basePath?page=$page"
+            return GET(paged, headers)
         }
 
         if (!tagSlug.isNullOrEmpty()) {
-                val path = "$baseUrl/tags/$tagSlug/"
-                val paged = if (page <= 1) path else "$path?page=$page"
-                return GET(paged, headers)
+            val path = "$baseUrl/tags/$tagSlug/"
+            val paged = if (page <= 1) path else "$path?page=$page"
+            return GET(paged, headers)
         }
 
         return GET("$baseUrl/comics/?page=$page", headers)
@@ -187,23 +187,23 @@ class AnimeBBG : ParsedHttpSource() {
         val tagSlug = getSelectedTagSlug(filters)
 
         if (typeSlug.isNotEmpty()) {
-                val basePath = "$baseUrl/comics/ct/$typeSlug/"
-                val paged = if (page <= 1) basePath else "$basePath?page=$page"
-                return GET(paged, headers)
+            val basePath = "$baseUrl/comics/ct/$typeSlug/"
+            val paged = if (page <= 1) basePath else "$basePath?page=$page"
+            return GET(paged, headers)
         }
 
         if (!tagSlug.isNullOrEmpty()) {
-                val path = "$baseUrl/tags/$tagSlug/"
-                val paged = if (page <= 1) path else "$path?page=$page"
-                return GET(paged, headers)
+            val path = "$baseUrl/tags/$tagSlug/"
+            val paged = if (page <= 1) path else "$path?page=$page"
+            return GET(paged, headers)
         }
 
         // Mantener ruta de whats-new si no hay filtros
         val threadId = "556530"
         val path = if (page <= 1) {
-                "$baseUrl/whats-new/comics/$threadId/"
+            "$baseUrl/whats-new/comics/$threadId/"
         } else {
-                "$baseUrl/whats-new/comics/$threadId/page-$page"
+            "$baseUrl/whats-new/comics/$threadId/page-$page"
         }
         return GET(path, headers)
     }
