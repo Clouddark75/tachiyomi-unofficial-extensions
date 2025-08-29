@@ -152,7 +152,7 @@ class AnimeBBG : ParsedHttpSource() {
         val typeFilter = filters.find { it is SeriesTypeFilter } as? SeriesTypeFilter ?: return ""
         val idx = typeFilter.state // Filter.Select.state es Int (índice)
         return if (idx <= 0) "" else TYPE_OPTIONS.getOrNull(idx) ?: ""
-  }
+    }
 
     // Obtener primer slug seleccionado de tags (o null)
     private fun getSelectedTagSlug(filters: FilterList): String? {
