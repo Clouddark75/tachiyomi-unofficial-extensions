@@ -108,13 +108,13 @@ class AnimeBBG : ParsedHttpSource() {
         setUrlWithoutDomain(element.attr("href"))
         name = element.text().trim()
 
-    private fun parseDate(date: String): Long {
-    return try {
-        java.time.OffsetDateTime.parse(date).toInstant().toEpochMilli()
-        } catch (_: Exception) {
-        0L
-      }
-   }
+        private fun parseDate(date: String): Long {
+        return try {
+                java.time.OffsetDateTime.parse(date).toInstant().toEpochMilli()
+            } catch (_: Exception) {
+                0L
+            }
+         }
         // Buscar fecha en el contenedor del capítulo
         val dateElement = element.closest(".structItem")?.selectFirst("time")
         date_upload = dateElement?.attr("datetime")?.let {
