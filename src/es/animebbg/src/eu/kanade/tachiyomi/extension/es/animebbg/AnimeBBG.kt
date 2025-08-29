@@ -50,12 +50,12 @@ class AnimeBBG : ParsedHttpSource() {
     }
 
     override fun popularMangaFromElement(element: Element): SManga {
-    val manga = SManga.create().apply {
-        setUrlWithoutDomain(element.attr("href"))
-        title = element.text().trim()
-    }
+        val manga = SManga.create().apply {
+            setUrlWithoutDomain(element.attr("href"))
+            title = element.text().trim()
+        }
 
-    // Cargar página del manga para obtener el thumbnail
+        // Cargar página del manga para obtener el thumbnail
         val detailsDoc = client.newCall(GET(baseUrl + manga.url, headers))
             .execute()
             .use { it.asJsoup() }
