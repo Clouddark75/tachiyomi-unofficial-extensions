@@ -104,15 +104,15 @@ class AnimeBBG : ParsedHttpSource() {
     }
 
     override fun chapterFromElement(element: Element): SChapter = SChapter.create().apply {
-    setUrlWithoutDomain(element.attr("href"))
-    name = element.text().trim()
+        setUrlWithoutDomain(element.attr("href"))
+        name = element.text().trim()
 
-    // Buscar fecha en el contenedor del capítulo
+        // Buscar fecha en el contenedor del capítulo
         val dateElement = element.closest(".structItem")?.selectFirst("time")
         date_upload = dateElement?.attr("datetime")?.let {
-        parseDate(it)
-      } ?: 0L
-   }
+            parseDate(it)
+        } ?: 0L
+    }
 
     override fun pageListParse(document: Document): List<Page> {
         return document.select(".media-container a").mapIndexed { index, element ->
