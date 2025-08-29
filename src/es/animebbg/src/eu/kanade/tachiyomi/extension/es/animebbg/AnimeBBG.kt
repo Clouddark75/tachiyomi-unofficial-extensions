@@ -26,7 +26,7 @@ class AnimeBBG : ParsedHttpSource() {
     override fun latestUpdatesNextPageSelector(): String = popularMangaNextPageSelector()
     override fun searchMangaNextPageSelector(): String = popularMangaNextPageSelector()
 
-    override fun chapterListSelector(): String = ".structItem-title a"
+    override fun chapterListSelector(): String = ".structItem--thread .structItem-title a"
 
     override fun popularMangaRequest(page: Int): Request {
         return GET("$baseUrl/comics/?page=$page", headers)
@@ -104,11 +104,15 @@ class AnimeBBG : ParsedHttpSource() {
     }
 
     override fun chapterFromElement(element: Element): SChapter = SChapter.create().apply {
-        val href = element.attr("href")
-        setUrlWithoutDomain(href)
-        name = element.text().trim()
-        date_upload = 0L
-    }
+    setUrlWithoutDomain(element.attr("href"))
+    name = element.text().trim()
+
+    // Buscar fecha en el contenedor del capítulo
+        val dateElement = element.closest(".structItem")?.selectFirst("time")
+        date_upload = dateElement?.attr("datetime")?.let {
+        parseDate(it)
+      } ?: 0L
+   }
 
     override fun pageListParse(document: Document): List<Page> {
         return document.select(".media-container a").mapIndexed { index, element ->
