@@ -141,10 +141,10 @@ class AnimeBBG : ParsedHttpSource() {
 
     override fun pageListParse(document: Document): List<Page> {
         return document.select("div#reader img").mapIndexed { i, img ->
-                val url = img.attr("src").ifEmpty { img.attr("data-src") }
-                Page(i, "", if (url.startsWith("http")) url else baseUrl + url)
+            val url = img.attr("src").ifEmpty { img.attr("data-src") }
+            Page(i, "", if (url.startsWith("http")) url else baseUrl + url)
         }
-     }
+    }
 
     override fun imageUrlParse(document: Document): String = ""
 }
