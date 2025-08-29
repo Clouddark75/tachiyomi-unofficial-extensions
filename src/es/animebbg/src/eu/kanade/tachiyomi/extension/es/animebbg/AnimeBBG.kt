@@ -75,7 +75,15 @@ class AnimeBBG : ParsedHttpSource() {
         description = desc
 
         genre = document.select("dd .tagItem").joinToString { it.text().trim() }
-        status = SManga.UNKNOWN
+        
+        // Status parsing
+        val statusText = document.select("dl.pairs--customField[data-field='status'] dd").text().trim()
+        status = when {
+            statusText.contains("Publicándose", ignoreCase = true) -> SManga.ONGOING
+            statusText.contains("Terminada", ignoreCase = true) -> SManga.COMPLETED
+            statusText.contains("Cancelada", ignoreCase = true) -> SManga.CANCELLED
+            else -> SManga.UNKNOWN
+        }
     }
 
     override fun chapterListRequest(manga: SManga): Request {
