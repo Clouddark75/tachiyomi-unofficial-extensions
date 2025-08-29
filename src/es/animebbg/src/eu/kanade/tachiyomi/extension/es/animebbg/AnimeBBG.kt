@@ -105,7 +105,7 @@ class AnimeBBG : ParsedHttpSource() {
     }
 
     override fun searchMangaParse(response: Response): MangasPage {
-        val document = response.asJsoup()
+        val document = org.jsoup.Jsoup.parse(response.body.string())
 
         // Filtrar resultados para incluir solo comics y excluir capítulos/updates/temas
         val mangas = document.select(".cse-result").mapNotNull { element ->
@@ -128,7 +128,7 @@ class AnimeBBG : ParsedHttpSource() {
             } else {
                 null
             }
-        }.filter { it.title.isNotEmpty() } // Filtrar mangas con título vacío
+        }.filter { manga -> manga.title.isNotEmpty() } // Filtrar mangas con título vacío
 
         // Verificar si hay página siguiente
         val hasNextPage = document.selectFirst("a[aria-label='Go to the next page']") != null
