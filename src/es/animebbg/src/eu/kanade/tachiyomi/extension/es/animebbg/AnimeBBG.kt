@@ -44,14 +44,12 @@ class AnimeBBG : ParsedHttpSource() {
         "Supervivencia" to "supervivencia",
     )
 
-   } 
-
     // Filtro para tipo de cómic
     private class SeriesTypeFilter : Filter.Select<String>(
         "Tipo",
         TYPE_OPTIONS,
     )
-
+    }
     // Filtro para géneros (checkboxes) - crear instancias concretas de CheckBox
     private class TagsFilter(tags: Array<Pair<String, String>>) : Filter.Group<Filter.CheckBox>(
         "Géneros",
