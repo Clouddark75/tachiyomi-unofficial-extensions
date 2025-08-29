@@ -21,6 +21,7 @@ class AnimeBBG : ParsedHttpSource() {
     override val baseUrl = "https://animebbg.net"
     override val lang = "es"
     override val supportsLatest = true
+    companion object {
     private val TYPE_OPTIONS = arrayOf(
         "Cualquiera",
         "manga.130",
@@ -28,7 +29,6 @@ class AnimeBBG : ParsedHttpSource() {
         "manhwa.131",
     )
 
-    // Lista de géneros (displayName to slug)
     private val TAGS = arrayOf(
         "Acción" to "accion",
         "Recuentos de la vida" to "recuentos-de-la-vida",
