@@ -75,7 +75,7 @@ class AnimeBBG : ParsedHttpSource() {
         description = desc
 
         genre = document.select("dd .tagItem").joinToString { it.text().trim() }
-        
+
         // Status parsing
         val statusText = document.select("dl.pairs--customField[data-field='status'] dd").text().trim()
         status = when {
