@@ -6,11 +6,11 @@ import eu.kanade.tachiyomi.source.model.Page
 import eu.kanade.tachiyomi.source.model.SChapter
 import eu.kanade.tachiyomi.source.model.SManga
 import eu.kanade.tachiyomi.source.online.ParsedHttpSource
-import java.time.OffsetDateTime
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.Request
 import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
+import java.time.OffsetDateTime
 
 class AnimeBBG : ParsedHttpSource() {
 
@@ -109,7 +109,7 @@ class AnimeBBG : ParsedHttpSource() {
         name = element.text().trim()
 
         private fun parseDate(date: String): Long {
-        return try {
+            return try {
                 java.time.OffsetDateTime.parse(date).toInstant().toEpochMilli()
             } catch (_: Exception) {
                 0L
