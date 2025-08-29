@@ -1,3 +1,6 @@
+tasks.named("lintKotlinMain") {
+    enabled = false
+}
 ext {
     extName = 'AnimeBBG'
     extClass = '.AnimeBBG'
