@@ -184,8 +184,28 @@ class AnimeBBG : ParsedHttpSource() {
 
     private class GenreFilter : Filter.Select<String>(
         "Género",
-        AnimeBBG.genreList.map { it.first }.toTypedArray(),
+        getGenreNames(),
     )
+
+    companion object {
+        private fun getGenreNames() = listOf(
+            "Todos",
+            "Acción",
+            "Recuentos de la vida",
+            "Aventura",
+            "Comedia",
+            "Drama",
+            "Fantasía",
+            "Magia",
+            "Webcomic",
+            "Harem",
+            "Reencarnación",
+            "Ciencia ficción",
+            "Supervivencia",
+        ).toTypedArray()
+    }
+
+    private inline fun <reified T> Iterable<*>.findInstance() = find { it is T } as? T
 
     private fun getGenreList() = listOf(
         "Todos" to "",
