@@ -60,7 +60,7 @@ class AnimeBBG : ParsedHttpSource() {
         }
 
         if (genreFilter != null && genreFilter.state != 0) {
-            val genreUrl = "$baseUrl/tags/${genreList[genreFilter.state].second}/"
+            val genreUrl = "$baseUrl/tags/${getGenreList()[genreFilter.state].second}/"
             return GET("$genreUrl?page=$page", headers)
         }
 
@@ -86,12 +86,15 @@ class AnimeBBG : ParsedHttpSource() {
         }
 
         // Cargar página del manga para obtener el thumbnail
-        val response = client.newCall(GET(baseUrl + manga.url, headers)).execute()
-        val detailsDoc = org.jsoup.Jsoup.parse(response.body!!.string())
-        response.close()
-
-        manga.thumbnail_url =
-            detailsDoc.selectFirst("img[alt='Resource banner']")?.attr("src")
+        try {
+            val response = client.newCall(GET(baseUrl + manga.url, headers)).execute()
+            response.use {
+                val detailsDoc = org.jsoup.Jsoup.parse(it.body.string())
+                manga.thumbnail_url = detailsDoc.selectFirst("img[alt='Resource banner']")?.attr("src")
+            }
+        } catch (e: Exception) {
+            manga.thumbnail_url = ""
+        }
 
         return manga
     }
@@ -117,10 +120,10 @@ class AnimeBBG : ParsedHttpSource() {
             // Intentar obtener thumbnail de la página de detalles si es necesario
             try {
                 val response = client.newCall(GET(baseUrl + manga.url, headers)).execute()
-                val detailsDoc = org.jsoup.Jsoup.parse(response.body!!.string())
-                response.close()
-
-                manga.thumbnail_url = detailsDoc.selectFirst("img[alt='Resource banner']")?.attr("src")
+                response.use {
+                    val detailsDoc = org.jsoup.Jsoup.parse(it.body.string())
+                    manga.thumbnail_url = detailsDoc.selectFirst("img[alt='Resource banner']")?.attr("src")
+                }
             } catch (e: Exception) {
                 // Si falla, continuar sin thumbnail
                 manga.thumbnail_url = ""
@@ -184,25 +187,21 @@ class AnimeBBG : ParsedHttpSource() {
         genreList.map { it.first }.toTypedArray(),
     )
 
-    private fun getGenreList() = genreList
-
-    companion object {
-        private val genreList = listOf(
-            "Todos" to "",
-            "Acción" to "accion",
-            "Recuentos de la vida" to "recuentos-de-la-vida",
-            "Aventura" to "aventura",
-            "Comedia" to "comedia",
-            "Drama" to "drama",
-            "Fantasía" to "fantasia",
-            "Magia" to "magia",
-            "Webcomic" to "webcomic",
-            "Harem" to "harem",
-            "Reencarnación" to "reencarnacion",
-            "Ciencia ficción" to "ciencia-ficcion",
-            "Supervivencia" to "supervivencia",
-        )
-    }
+    private fun getGenreList() = listOf(
+        "Todos" to "",
+        "Acción" to "accion",
+        "Recuentos de la vida" to "recuentos-de-la-vida",
+        "Aventura" to "aventura",
+        "Comedia" to "comedia",
+        "Drama" to "drama",
+        "Fantasía" to "fantasia",
+        "Magia" to "magia",
+        "Webcomic" to "webcomic",
+        "Harem" to "harem",
+        "Reencarnación" to "reencarnacion",
+        "Ciencia ficción" to "ciencia-ficcion",
+        "Supervivencia" to "supervivencia",
+    )
 
     private inline fun <reified T> Iterable<*>.findInstance() = find { it is T } as? T
 
