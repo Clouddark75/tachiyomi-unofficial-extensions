@@ -57,15 +57,15 @@ class AnimeBBG : ParsedHttpSource() {
         }
 
         // Cargar página del manga para obtener el thumbnail
-        val detailsDoc = client.newCall(GET(baseUrl + manga.url, headers))
-            .execute()
-            .use { it.asJsoup() }
+        val response = client.newCall(GET(baseUrl + manga.url, headers)).execute()
+        val detailsDoc = org.jsoup.Jsoup.parse(response.body!!.string())
+       response.close()
 
         manga.thumbnail_url =
-            detailsDoc.selectFirst("img[alt='Resource banner']")?.attr("src")
+           detailsDoc.selectFirst("img[alt='Resource banner']")?.attr("src")
 
-        return manga
-    }
+       return manga
+     }
 
     override fun latestUpdatesFromElement(element: Element): SManga = popularMangaFromElement(element)
 
