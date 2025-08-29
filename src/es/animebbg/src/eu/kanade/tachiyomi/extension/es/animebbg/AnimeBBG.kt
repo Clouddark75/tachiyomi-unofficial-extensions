@@ -21,6 +21,44 @@ class AnimeBBG : ParsedHttpSource() {
     override val baseUrl = "https://animebbg.net"
     override val lang = "es"
     override val supportsLatest = true
+    // ---------- FILTROS: TYPES y TAGS (declarados antes de su uso) ----------
+    // Opciones de tipo (índices)
+    private val TYPE_OPTIONS = arrayOf(
+        "Cualquiera",
+        "manga.130",
+        "manhua.132",
+        "manhwa.131",
+    )
+
+    // Lista de géneros (displayName to slug)
+    private val TAGS = arrayOf(
+        "Acción" to "accion",
+        "Recuentos de la vida" to "recuentos-de-la-vida",
+        "Aventura" to "aventura",
+        "Comedia" to "comedia",
+        "Drama" to "drama",
+        "Fantasía" to "fantasia",
+        "Magia" to "magia",
+        "Webcomic" to "webcomic",
+        "Harem" to "harem",
+        "Reencarnación" to "reencarnacion",
+        "Ciencia ficción" to "ciencia-ficcion",
+        "Supervivencia" to "supervivencia",
+    )
+
+    // Filtro para tipo de cómic
+    private class SeriesTypeFilter : Filter.Select<String>(
+        "Tipo",
+        TYPE_OPTIONS,
+    )
+
+    // Filtro para géneros (checkboxes)
+    // Atención: si tu versión de Filter.CheckBox es abstracta, esto fallará y habrá que adaptar.
+    private class TagsFilter(tags: Array<Pair<String, String>>) : Filter.Group<Filter.CheckBox>(
+        "Géneros",
+        tags.map { Filter.CheckBox(it.first, false) }.toTypedArray(),
+    )
+    // ----------------------------------------------------------------------
 
     override fun popularMangaSelector(): String = "a[data-tp-primary='on']"
     override fun latestUpdatesSelector(): String = popularMangaSelector()
@@ -104,42 +142,6 @@ class AnimeBBG : ParsedHttpSource() {
 
         return manga
     }
-
-    // Opciones de tipo (índices)
-    private val TYPE_OPTIONS = arrayOf(
-        "Cualquiera",
-        "manga.130",
-        "manhua.132",
-        "manhwa.131",
-    )
-
-    // Filtro para tipo de cómic
-    private class SeriesTypeFilter : Filter.Select<String>(
-        "Tipo",
-        TYPE_OPTIONS,
-    )
-
-    // Filtro para géneros (checkboxes)
-    private class TagsFilter(tags: Array<Pair<String, String>>) : Filter.Group<Filter.CheckBox>(
-        "Géneros",
-        tags.map { Filter.CheckBox(it.first, false) }, // pasar List<Filter.CheckBox>
-    )
-
-    // Lista de géneros (displayName to slug)
-    private val TAGS = arrayOf(
-        "Acción" to "accion",
-        "Recuentos de la vida" to "recuentos-de-la-vida",
-        "Aventura" to "aventura",
-        "Comedia" to "comedia",
-        "Drama" to "drama",
-        "Fantasía" to "fantasia",
-        "Magia" to "magia",
-        "Webcomic" to "webcomic",
-        "Harem" to "harem",
-        "Reencarnación" to "reencarnacion",
-        "Ciencia ficción" to "ciencia-ficcion",
-        "Supervivencia" to "supervivencia",
-    )
 
     // Exponer filtros (tipo + géneros)
     override fun getFilterList(): FilterList = FilterList(
