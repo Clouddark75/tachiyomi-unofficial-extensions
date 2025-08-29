@@ -21,7 +21,6 @@ class AnimeBBG : ParsedHttpSource() {
     override val baseUrl = "https://animebbg.net"
     override val lang = "es"
     override val supportsLatest = true
-    // Opciones de tipo (índices)
     private val TYPE_OPTIONS = arrayOf(
         "Cualquiera",
         "manga.130",
