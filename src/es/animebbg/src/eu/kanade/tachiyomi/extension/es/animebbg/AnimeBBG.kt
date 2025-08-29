@@ -21,7 +21,6 @@ class AnimeBBG : ParsedHttpSource() {
     override val baseUrl = "https://animebbg.net"
     override val lang = "es"
     override val supportsLatest = true
-    // ---------- FILTROS: TYPES y TAGS (declarados antes de su uso) ----------
     // Opciones de tipo (índices)
     private val TYPE_OPTIONS = arrayOf(
         "Cualquiera",
@@ -52,7 +51,6 @@ class AnimeBBG : ParsedHttpSource() {
         TYPE_OPTIONS,
     )
 
-    // Filtro para géneros (checkboxes)
     // Atención: si tu versión de Filter.CheckBox es abstracta, esto fallará y habrá que adaptar.
     private class TagsFilter(tags: Array<Pair<String, String>>) : Filter.Group<Filter.CheckBox>(
         "Géneros",
