@@ -63,7 +63,7 @@ class AnimeBBG : ParsedHttpSource() {
             val genreUrl = "$baseUrl/tags/${getGenreList()[genreFilter.state].second}/"
             return GET("$genreUrl?page=$page", headers)
         }
-        
+
         // Si hay query de búsqueda, usar Google Custom Search
         if (query.isNotEmpty()) {
             val searchId = "198660"
@@ -74,7 +74,7 @@ class AnimeBBG : ParsedHttpSource() {
             }
             return GET(url.build(), headers)
         }
-        
+
         // Por defecto, mostrar todos los comics
         return GET("$baseUrl/comics/?page=$page", headers)
     }
@@ -162,7 +162,7 @@ class AnimeBBG : ParsedHttpSource() {
             val hasNextPage = document.selectFirst("a[aria-label='Go to the next page']") != null
             return MangasPage(mangas, hasNextPage)
         }
-        
+
         // Si es navegación por filtros (tipo o género), usar el selector normal
         return popularMangaParse(response)
     }
@@ -176,12 +176,12 @@ class AnimeBBG : ParsedHttpSource() {
 
     private class TypeFilter : Filter.Select<String>(
         "Tipo",
-        arrayOf("Todos", "Manga", "Manhua", "Manhwa")
+        arrayOf("Todos", "Manga", "Manhua", "Manhwa"),
     )
 
     private class GenreFilter : Filter.Select<String>(
         "Género",
-        getGenreList().map { it.first }.toTypedArray()
+        getGenreList().map { it.first }.toTypedArray(),
     )
 
     private fun getGenreList() = listOf(
@@ -197,7 +197,7 @@ class AnimeBBG : ParsedHttpSource() {
         "Harem" to "harem",
         "Reencarnación" to "reencarnacion",
         "Ciencia ficción" to "ciencia-ficcion",
-        "Supervivencia" to "supervivencia"
+        "Supervivencia" to "supervivencia",
     )
 
     private inline fun <reified T> Iterable<*>.findInstance() = find { it is T } as? T
