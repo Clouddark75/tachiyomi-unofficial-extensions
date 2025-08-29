@@ -48,7 +48,7 @@ class AnimeBBG : ParsedHttpSource() {
         // Si hay filtros de tipo o género, usar navegación directa en lugar de búsqueda
         val typeFilter = filters.findInstance<TypeFilter>()
         val genreFilter = filters.findInstance<GenreFilter>()
-        
+
         if (typeFilter != null && typeFilter.state != 0) {
             val typeUrl = when (typeFilter.state) {
                 1 -> "$baseUrl/comics/ct/manga.130/"
@@ -58,7 +58,7 @@ class AnimeBBG : ParsedHttpSource() {
             }
             return GET("$typeUrl?page=$page", headers)
         }
-        
+
         if (genreFilter != null && genreFilter.state != 0) {
             val genreUrl = "$baseUrl/tags/${getGenreList()[genreFilter.state].second}/"
             return GET("$genreUrl?page=$page", headers)
