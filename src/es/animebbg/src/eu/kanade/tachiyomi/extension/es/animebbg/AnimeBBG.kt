@@ -59,8 +59,8 @@ class AnimeBBG : ParsedHttpSource() {
 
     override fun mangaDetailsParse(document: Document): SManga = SManga.create().apply {
         title = document.selectFirst("h1.p-title-value")?.text()
-        ?.replace(Regex("\\s*ES\\s*"), "")
-        ?.trim() ?: ""
+            ?.replace(Regex("\\s*ES\\s*"), "")
+            ?.trim() ?: ""
         thumbnail_url = document.selectFirst("img[alt='Resource banner']")?.attr("src")
 
         val altTitles = document.select("dl.pairs--customField[data-field='titulos_alternativo'] dd")
