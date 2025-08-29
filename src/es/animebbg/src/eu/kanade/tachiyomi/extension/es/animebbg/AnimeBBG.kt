@@ -21,41 +21,6 @@ class AnimeBBG : ParsedHttpSource() {
     override val baseUrl = "https://animebbg.net"
     override val lang = "es"
     override val supportsLatest = true
-    companion object {
-    private val TYPE_OPTIONS = arrayOf(
-        "Cualquiera",
-        "manga.130",
-        "manhua.132",
-        "manhwa.131",
-    )
-
-    private val TAGS = arrayOf(
-        "Acción" to "accion",
-        "Recuentos de la vida" to "recuentos-de-la-vida",
-        "Aventura" to "aventura",
-        "Comedia" to "comedia",
-        "Drama" to "drama",
-        "Fantasía" to "fantasia",
-        "Magia" to "magia",
-        "Webcomic" to "webcomic",
-        "Harem" to "harem",
-        "Reencarnación" to "reencarnacion",
-        "Ciencia ficción" to "ciencia-ficcion",
-        "Supervivencia" to "supervivencia",
-    )
-
-    // Filtro para tipo de cómic
-    private class SeriesTypeFilter : Filter.Select<String>(
-        "Tipo",
-        TYPE_OPTIONS,
-    )
-  }
-    // Filtro para géneros (checkboxes) - crear instancias concretas de CheckBox
-    private class TagsFilter(tags: Array<Pair<String, String>>) : Filter.Group<Filter.CheckBox>(
-        "Géneros",
-        tags.map { object : Filter.CheckBox(it.first, false) {} },
-    )
-    // ----------------------------------------------------------------------
 
     override fun popularMangaSelector(): String = "a[data-tp-primary='on']"
     override fun latestUpdatesSelector(): String = popularMangaSelector()
@@ -80,13 +45,38 @@ class AnimeBBG : ParsedHttpSource() {
     }
 
     override fun searchMangaRequest(page: Int, query: String, filters: FilterList): Request {
-        val searchId = "198660" // ID del motor de búsqueda de Google Custom Search
-        val url = "$baseUrl/search/$searchId/".toHttpUrl().newBuilder().apply {
-            addQueryParameter("q", query)
-            addQueryParameter("o", "date")
-            fragment("gsc.tab=0&gsc.q=$query&gsc.page=$page")
+        // Si hay filtros de tipo o género, usar navegación directa en lugar de búsqueda
+        val typeFilter = filters.findInstance<TypeFilter>()
+        val genreFilter = filters.findInstance<GenreFilter>()
+        
+        if (typeFilter != null && typeFilter.state != 0) {
+            val typeUrl = when (typeFilter.state) {
+                1 -> "$baseUrl/comics/ct/manga.130/"
+                2 -> "$baseUrl/comics/ct/manhua.132/"
+                3 -> "$baseUrl/comics/ct/manhwa.131/"
+                else -> "$baseUrl/comics/"
+            }
+            return GET("$typeUrl?page=$page", headers)
         }
-        return GET(url.build(), headers)
+        
+        if (genreFilter != null && genreFilter.state != 0) {
+            val genreUrl = "$baseUrl/tags/${getGenreList()[genreFilter.state].second}/"
+            return GET("$genreUrl?page=$page", headers)
+        }
+        
+        // Si hay query de búsqueda, usar Google Custom Search
+        if (query.isNotEmpty()) {
+            val searchId = "198660"
+            val url = "$baseUrl/search/$searchId/".toHttpUrl().newBuilder().apply {
+                addQueryParameter("q", query)
+                addQueryParameter("o", "date")
+                fragment("gsc.tab=0&gsc.q=$query&gsc.page=$page")
+            }
+            return GET(url.build(), headers)
+        }
+        
+        // Por defecto, mostrar todos los comics
+        return GET("$baseUrl/comics/?page=$page", headers)
     }
 
     override fun popularMangaFromElement(element: Element): SManga {
@@ -140,104 +130,77 @@ class AnimeBBG : ParsedHttpSource() {
         return manga
     }
 
-    // Exponer filtros (tipo + géneros)
-    override fun getFilterList(): FilterList = FilterList(
-        SeriesTypeFilter(),
-        TagsFilter(TAGS),
-    )
-
-    // Obtener slug del tipo seleccionado (o empty)
-    private fun getSelectedTypeSlug(filters: FilterList): String {
-        val typeFilter = filters.find { it is SeriesTypeFilter } as? SeriesTypeFilter ?: return ""
-        val idx = typeFilter.state // Filter.Select.state es Int (índice)
-        return if (idx <= 0) "" else TYPE_OPTIONS.getOrNull(idx) ?: ""
-    }
-
-    // Obtener primer slug seleccionado de tags (o null)
-    private fun getSelectedTagSlug(filters: FilterList): String? {
-        val tagsFilter = filters.find { it is TagsFilter } as? TagsFilter ?: return null
-        val checkedIndex = tagsFilter.state.indexOfFirst { it.state } // state es Array<CheckBox>
-        return if (checkedIndex >= 0) TAGS[checkedIndex].second else null
-    }
-
-    // Petición para populares usando filtros (quita 'override' si la firma base no existe)
-    fun popularMangaRequest(page: Int, filters: FilterList): Request {
-        val typeSlug = getSelectedTypeSlug(filters)
-        val tagSlug = getSelectedTagSlug(filters)
-
-        if (typeSlug.isNotEmpty()) {
-            val basePath = "$baseUrl/comics/ct/$typeSlug/"
-            val paged = if (page <= 1) basePath else "$basePath?page=$page"
-            return GET(paged, headers)
-        }
-
-        if (!tagSlug.isNullOrEmpty()) {
-            val path = "$baseUrl/tags/$tagSlug/"
-            val paged = if (page <= 1) path else "$path?page=$page"
-            return GET(paged, headers)
-        }
-
-        return GET("$baseUrl/comics/?page=$page", headers)
-    }
-
-    // Petición para recientes (latest) usando filtros (quita 'override' si la firma base no existe)
-    fun latestUpdatesRequest(page: Int, filters: FilterList): Request {
-        val typeSlug = getSelectedTypeSlug(filters)
-        val tagSlug = getSelectedTagSlug(filters)
-
-        if (typeSlug.isNotEmpty()) {
-            val basePath = "$baseUrl/comics/ct/$typeSlug/"
-            val paged = if (page <= 1) basePath else "$basePath?page=$page"
-            return GET(paged, headers)
-        }
-
-        if (!tagSlug.isNullOrEmpty()) {
-            val path = "$baseUrl/tags/$tagSlug/"
-            val paged = if (page <= 1) path else "$path?page=$page"
-            return GET(paged, headers)
-        }
-
-        // Mantener ruta de whats-new si no hay filtros
-        val threadId = "556530"
-        val path = if (page <= 1) {
-            "$baseUrl/whats-new/comics/$threadId/"
-        } else {
-            "$baseUrl/whats-new/comics/$threadId/page-$page"
-        }
-        return GET(path, headers)
-    }
-
     override fun searchMangaParse(response: Response): MangasPage {
         val document = org.jsoup.Jsoup.parse(response.body.string())
+        val url = response.request.url.toString()
 
-        // Filtrar resultados para incluir solo comics y excluir capítulos/updates/temas
-        val mangas = document.select(".cse-result").mapNotNull { element ->
-            val linkElement = element.selectFirst("a")
-            val href = linkElement?.attr("href") ?: ""
+        // Si es una búsqueda de Google Custom Search
+        if (url.contains("/search/")) {
+            // Filtrar resultados para incluir solo comics y excluir capítulos/updates/temas
+            val mangas = document.select(".cse-result").mapNotNull { element ->
+                val linkElement = element.selectFirst("a")
+                val href = linkElement?.attr("href") ?: ""
 
-            // Filtrar solo enlaces que sean de comics y no de capítulos, updates o temas
-            if (href.contains("/comics/") &&
-                !href.contains("/update/") &&
-                !href.contains("/capitulo") &&
-                !href.contains("/temas/") &&
-                !href.contains("Capítulo") &&
-                !href.contains("Capitulo")
-            ) {
-                try {
-                    searchMangaFromElement(element)
-                } catch (e: Exception) {
+                // Filtrar solo enlaces que sean de comics y no de capítulos, updates o temas
+                if (href.contains("/comics/") &&
+                    !href.contains("/update/") &&
+                    !href.contains("/capitulo") &&
+                    !href.contains("/temas/") &&
+                    !href.contains("Capítulo") &&
+                    !href.contains("Capitulo")
+                ) {
+                    try {
+                        searchMangaFromElement(element)
+                    } catch (e: Exception) {
+                        null
+                    }
+                } else {
                     null
                 }
-            } else {
-                null
-            }
-        }.filter { manga -> manga.title.isNotEmpty() } // Filtrar mangas con título vacío
+            }.filter { manga -> manga.title.isNotEmpty() }
 
-        // Verificar si hay página siguiente
-        val hasNextPage = document.selectFirst("a[aria-label='Go to the next page']") != null
-
-        return MangasPage(mangas, hasNextPage)
+            val hasNextPage = document.selectFirst("a[aria-label='Go to the next page']") != null
+            return MangasPage(mangas, hasNextPage)
+        }
+        
+        // Si es navegación por filtros (tipo o género), usar el selector normal
+        return popularMangaParse(response)
     }
+
+    override fun getFilterList(): FilterList = FilterList(
+        Filter.Header("Nota: Los filtros no se pueden combinar con búsqueda de texto"),
+        Filter.Separator(),
+        TypeFilter(),
+        GenreFilter(),
+    )
+
+    private class TypeFilter : Filter.Select<String>(
+        "Tipo",
+        arrayOf("Todos", "Manga", "Manhua", "Manhwa")
+    )
+
+    private class GenreFilter : Filter.Select<String>(
+        "Género",
+        getGenreList().map { it.first }.toTypedArray()
+    )
+
+    private fun getGenreList() = listOf(
+        "Todos" to "",
+        "Acción" to "accion",
+        "Recuentos de la vida" to "recuentos-de-la-vida",
+        "Aventura" to "aventura",
+        "Comedia" to "comedia",
+        "Drama" to "drama",
+        "Fantasía" to "fantasia",
+        "Magia" to "magia",
+        "Webcomic" to "webcomic",
+        "Harem" to "harem",
+        "Reencarnación" to "reencarnacion",
+        "Ciencia ficción" to "ciencia-ficcion",
+        "Supervivencia" to "supervivencia"
+    )
+
+    private inline fun <reified T> Iterable<*>.findInstance() = find { it is T } as? T
 
     override fun mangaDetailsParse(document: Document): SManga = SManga.create().apply {
         title = document.selectFirst("h1.p-title-value")?.text()
