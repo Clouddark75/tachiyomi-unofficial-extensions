@@ -115,13 +115,13 @@ class AnimeBBG : ParsedHttpSource() {
         } ?: 0L
     }
 
-        private fun parseDate(date: String): Long {
-            return try {
-                java.time.OffsetDateTime.parse(date).toInstant().toEpochMilli()
-            } catch (_: Exception) {
-                0L
-            }
+    private fun parseDate(date: String): Long {
+        return try {
+            java.time.OffsetDateTime.parse(date).toInstant().toEpochMilli()
+        } catch (_: Exception) {
+            0L
         }
+    }
 
     override fun pageListParse(document: Document): List<Page> {
         return document.select(".media-container a").mapIndexed { index, element ->
