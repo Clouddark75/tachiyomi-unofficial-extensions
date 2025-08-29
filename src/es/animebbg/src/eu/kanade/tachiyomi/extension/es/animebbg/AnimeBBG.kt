@@ -50,10 +50,16 @@ class AnimeBBG : ParsedHttpSource() {
     }
 
     override fun popularMangaFromElement(element: Element): SManga {
-        val manga = SManga.create().apply {
-            setUrlWithoutDomain(element.attr("href"))
-            title = element.text().trim()
+        val manga = SManga.create()
+        var url = element.select("a").attr("href")
+        if (!url.endsWith("/")) {
+                url += "/"
         }
+        manga.setUrlWithoutDomain(url)
+        manga.title = element.select("h3").text()
+        manga.thumbnail_url = element.select("img").attr("src")
+        return manga
+}
 
         // Cargar página del manga para obtener el thumbnail
         val response = client.newCall(GET(baseUrl + manga.url, headers)).execute()
@@ -112,7 +118,9 @@ class AnimeBBG : ParsedHttpSource() {
         }
     }
 
-    override fun chapterListRequest(manga: SManga) = GET("$baseUrl${manga.url}/capitulos", headers)
+    override fun chapterListRequest(manga: SManga): Request {
+    return GET("$baseUrl${manga.url}capitulos", headers)
+}
 
     override fun chapterFromElement(element: Element): SChapter = SChapter.create().apply {
         setUrlWithoutDomain(element.attr("href"))
