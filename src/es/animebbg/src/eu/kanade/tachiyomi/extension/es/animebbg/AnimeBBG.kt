@@ -1,8 +1,7 @@
 package eu.kanade.tachiyomi.extension.es.animebbg
 
-// Imports de Kotlin/Java/OkHttp/Tachiyomi
 import eu.kanade.tachiyomi.network.GET
-import eu.kanade.tachiyomi.network.asJsoup        // <- este es nuevo
+import eu.kanade.tachiyomi.network.asJsoup
 import eu.kanade.tachiyomi.source.model.FilterList
 import eu.kanade.tachiyomi.source.model.Page
 import eu.kanade.tachiyomi.source.model.SChapter
@@ -10,9 +9,9 @@ import eu.kanade.tachiyomi.source.model.SManga
 import eu.kanade.tachiyomi.source.online.ParsedHttpSource
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.Request
-import org.jsoup.nodes.Document                       // <- para selectFirst
-import org.jsoup.nodes.Element                        // <- para selectFirst
-import java.time.OffsetDateTime                        // <- para parseDate// <- para parseDate
+import org.jsoup.nodes.Document
+import org.jsoup.nodes.Element
+import java.time.OffsetDateTime
 
 class AnimeBBG : ParsedHttpSource() {
 
