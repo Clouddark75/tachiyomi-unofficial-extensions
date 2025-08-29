@@ -61,7 +61,8 @@ class AnimeBBG : ParsedHttpSource() {
         title = document.selectFirst("h1.p-title-value")?.text()?.trim() ?: ""
         thumbnail_url = document.selectFirst("img[alt='Resource banner']")?.attr("src")
 
-        val altTitles = document.selectFirst("dd")?.html()?.split("<br>")
+        val altTitles = document.select("dl.pairs--customField[data-field='titulos_alternativo'] dd")
+            .firstOrNull()?.html()?.split("<br>")
             ?.map { it.trim() }?.filter { it.isNotEmpty() }
         var desc = ""
         if (!altTitles.isNullOrEmpty()) {
