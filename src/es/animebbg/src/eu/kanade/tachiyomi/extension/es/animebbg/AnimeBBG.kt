@@ -49,10 +49,28 @@ class AnimeBBG : ParsedHttpSource() {
         return GET(url.build(), headers)
     }
 
-    override fun popularMangaFromElement(element: Element): SManga = SManga.create().apply {
+    override fun popularMangaFromElement(element: Element): SManga {
+    val manga = SManga.create().apply {
         setUrlWithoutDomain(element.attr("href"))
         title = element.text().trim()
     }
+
+    // Cargar página del manga para obtener el thumbnail
+    val detailsDoc = client.newCall(GET(baseUrl + manga.url, headers))
+        .execute()
+        .use { it.asJsoup() }
+
+    manga.thumbnail_url =
+        detailsDoc.selectFirst("img[alt='Resource banner']")?.attr("src")
+
+    return manga
+}
+
+override fun latestUpdatesFromElement(element: Element): SManga =
+    popularMangaFromElement(element)
+
+override fun searchMangaFromElement(element: Element): SManga =
+    popularMangaFromElement(element)
 
     override fun latestUpdatesFromElement(element: Element): SManga = popularMangaFromElement(element)
 
