@@ -73,9 +73,9 @@ class AnimeBBG : ParsedHttpSource() {
             // Find the text before the first <br> or <h3> tag
             val endIndex = minOf(
                 html.indexOf("<br"),
-                html.indexOf("<h3")
+                html.indexOf("<h3"),
             ).let { if (it == -1) html.length else it }
-            
+
             // Extract just the first paragraph and clean it
             html.substring(0, endIndex).replace(Regex("<[^>]*>"), "").trim()
         }
