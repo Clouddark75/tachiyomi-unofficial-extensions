@@ -122,7 +122,7 @@ class AnimeBBG : ParsedHttpSource() {
     // Filtro para géneros (checkboxes)
     private class TagsFilter(tags: Array<Pair<String, String>>) : Filter.Group<Filter.CheckBox>(
         "Géneros",
-        tags.map { Filter.CheckBox(it.first, false) }.toTypedArray(),
+        tags.map { Filter.CheckBox(it.first, false) }, // pasar List<Filter.CheckBox>
     )
 
     // Lista de géneros (displayName to slug)
