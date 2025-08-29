@@ -26,7 +26,7 @@ class AnimeBBG : ParsedHttpSource() {
     override fun latestUpdatesNextPageSelector(): String = popularMangaNextPageSelector()
     override fun searchMangaNextPageSelector(): String = popularMangaNextPageSelector()
 
-    override fun chapterListSelector(): String = ".structItem--resourceAlbum .structItem-title a"
+    override fun chapterListSelector(): String = ".structItem-title a"
 
     override fun popularMangaRequest(page: Int): Request {
         return GET("$baseUrl/comics/?page=$page", headers)
@@ -58,7 +58,9 @@ class AnimeBBG : ParsedHttpSource() {
     override fun searchMangaFromElement(element: Element): SManga = popularMangaFromElement(element)
 
     override fun mangaDetailsParse(document: Document): SManga = SManga.create().apply {
-        title = document.selectFirst("h1.p-title-value")?.text()?.trim() ?: ""
+        title = document.selectFirst("h1.p-title-value")?.text()
+        ?.replace(Regex("\\s*ES\\s*"), "")
+        ?.trim() ?: ""
         thumbnail_url = document.selectFirst("img[alt='Resource banner']")?.attr("src")
 
         val altTitles = document.select("dl.pairs--customField[data-field='titulos_alternativo'] dd")
@@ -102,8 +104,8 @@ class AnimeBBG : ParsedHttpSource() {
     }
 
     override fun chapterFromElement(element: Element): SChapter = SChapter.create().apply {
-        val link = element.attr("href")
-        setUrlWithoutDomain(link)
+        val href = element.attr("href")
+        setUrlWithoutDomain(href)
         name = element.text().trim()
         date_upload = 0L
     }
