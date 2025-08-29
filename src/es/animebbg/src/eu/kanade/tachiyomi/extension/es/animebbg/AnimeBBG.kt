@@ -107,13 +107,12 @@ class AnimeBBG : ParsedHttpSource() {
     // Filtro para tipo de cómic
     private class SeriesTypeFilter : Filter.Select<String>(
         "Tipo",
-        arrayOf("Cualquiera", "manga.130", "manhua.132", "manhwa.131")
+        arrayOf("Cualquiera", "manga.130", "manhua.132", "manhwa.131"),
 )
-
 // Filtro para géneros (checkboxes)
     private class TagsFilter(tags: Array<Pair<String, String>>) : Filter.Group<Filter.CheckBox>(
         "Géneros",
-        tags.map { Filter.CheckBox(it.first, false) }
+        tags.map { Filter.CheckBox(it.first, false) },
 )
 
 // Lista de géneros (displayName to slug)
@@ -129,13 +128,13 @@ class AnimeBBG : ParsedHttpSource() {
         "Harem" to "harem",
         "Reencarnación" to "reencarnacion",
         "Ciencia ficción" to "ciencia-ficcion",
-        "Supervivencia" to "supervivencia"
+        "Supervivencia" to "supervivencia",
 )
 
 // Exponer filtros (tipo + géneros)
     override fun getFilterList(): FilterList = FilterList(
         SeriesTypeFilter(),
-        TagsFilter(TAGS)
+        TagsFilter(TAGS),
 )
 
 // Obtener slug del tipo seleccionado (o empty)
