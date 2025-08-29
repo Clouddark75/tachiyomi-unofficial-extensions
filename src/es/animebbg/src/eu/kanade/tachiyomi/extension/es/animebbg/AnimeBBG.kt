@@ -184,7 +184,7 @@ class AnimeBBG : ParsedHttpSource() {
 
     private class GenreFilter : Filter.Select<String>(
         "Género",
-        genreList.map { it.first }.toTypedArray(),
+        AnimeBBG.genreList.map { it.first }.toTypedArray(),
     )
 
     private fun getGenreList() = listOf(
