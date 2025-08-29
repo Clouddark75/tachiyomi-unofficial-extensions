@@ -108,12 +108,12 @@ class AnimeBBG : ParsedHttpSource() {
     private class SeriesTypeFilter : Filter.Select<String>(
         "Tipo",
         arrayOf("Cualquiera", "manga.130", "manhua.132", "manhwa.131"),
-)
+    )
 // Filtro para géneros (checkboxes)
     private class TagsFilter(tags: Array<Pair<String, String>>) : Filter.Group<Filter.CheckBox>(
         "Géneros",
         tags.map { Filter.CheckBox(it.first, false) },
-)
+    )
 
 // Lista de géneros (displayName to slug)
     private val TAGS = arrayOf(
@@ -129,26 +129,26 @@ class AnimeBBG : ParsedHttpSource() {
         "Reencarnación" to "reencarnacion",
         "Ciencia ficción" to "ciencia-ficcion",
         "Supervivencia" to "supervivencia",
-)
+    )
 
 // Exponer filtros (tipo + géneros)
     override fun getFilterList(): FilterList = FilterList(
         SeriesTypeFilter(),
         TagsFilter(TAGS),
-)
+    )
 
 // Obtener slug del tipo seleccionado (o empty)
     private fun getSelectedTypeSlug(filters: FilterList): String {
         val typeFilter = filters.find { it is SeriesTypeFilter } as? SeriesTypeFilter
         return typeFilter?.state?.let { if (it == "Cualquiera") "" else it } ?: ""
-}
+    }
 
 // Obtener primer slug seleccionado de tags (o null)
     private fun getSelectedTagSlug(filters: FilterList): String? {
         val tagsFilter = filters.find { it is TagsFilter } as? TagsFilter ?: return null
         val checkedIndex = tagsFilter.state.indexOfFirst { it.state }
         return if (checkedIndex >= 0) TAGS[checkedIndex].second else null
-}
+    }
 
 // SobreCarga: usar filtros en la petición de populares
     override fun popularMangaRequest(page: Int, filters: FilterList): Request {
@@ -168,7 +168,7 @@ class AnimeBBG : ParsedHttpSource() {
         }
 
         return GET("$baseUrl/comics/?page=$page", headers)
-   }
+       }
 
 // SobreCarga: usar filtros en la petición de recientes (latest)
     override fun latestUpdatesRequest(page: Int, filters: FilterList): Request {
@@ -195,7 +195,7 @@ class AnimeBBG : ParsedHttpSource() {
             "$baseUrl/whats-new/comics/$threadId/page-$page"
         }
         return GET(path, headers)
-}
+    }
 
     override fun searchMangaParse(response: Response): MangasPage {
         val document = org.jsoup.Jsoup.parse(response.body.string())
