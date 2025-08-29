@@ -53,7 +53,7 @@ class AnimeBBG : ParsedHttpSource() {
         val manga = SManga.create()
         var url = element.select("a").attr("href")
         if (!url.endsWith("/")) {
-                url += "/"
+      url += "/"
         }
         manga.setUrlWithoutDomain(url)
         manga.title = element.select("h3").text()
@@ -108,8 +108,8 @@ class AnimeBBG : ParsedHttpSource() {
     }
 
     override fun chapterListRequest(manga: SManga): Request {
-    return GET("$baseUrl${manga.url}capitulos", headers)
-}
+        return GET("$baseUrl${manga.url}capitulos", headers)
+    }
 
     override fun chapterFromElement(element: Element): SChapter = SChapter.create().apply {
         setUrlWithoutDomain(element.attr("href"))
