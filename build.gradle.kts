@@ -1,6 +1,3 @@
-tasks.named("lintKotlinMain") {
-    enabled = false
-}
 allprojects {
     repositories {
         mavenCentral()
