@@ -1,7 +1,6 @@
 package eu.kanade.tachiyomi.extension.es.animebbg
 
 import eu.kanade.tachiyomi.network.GET
-import eu.kanade.tachiyomi.source.model.Filter
 import eu.kanade.tachiyomi.source.model.FilterList
 import eu.kanade.tachiyomi.source.model.MangasPage
 import eu.kanade.tachiyomi.source.model.Page
@@ -45,38 +44,13 @@ class AnimeBBG : ParsedHttpSource() {
     }
 
     override fun searchMangaRequest(page: Int, query: String, filters: FilterList): Request {
-        // Si hay filtros de tipo o género, usar navegación directa en lugar de búsqueda
-        val typeFilter = filters.findInstance<TypeFilter>()
-        val genreFilter = filters.findInstance<GenreFilter>()
-
-        if (typeFilter != null && typeFilter.state != 0) {
-            val typeUrl = when (typeFilter.state) {
-                1 -> "$baseUrl/comics/ct/manga.130/"
-                2 -> "$baseUrl/comics/ct/manhua.132/"
-                3 -> "$baseUrl/comics/ct/manhwa.131/"
-                else -> "$baseUrl/comics/"
-            }
-            return GET("$typeUrl?page=$page", headers)
+        val searchId = "198660" // ID del motor de búsqueda de Google Custom Search
+        val url = "$baseUrl/search/$searchId/".toHttpUrl().newBuilder().apply {
+            addQueryParameter("q", query)
+            addQueryParameter("o", "date")
+            fragment("gsc.tab=0&gsc.q=$query&gsc.page=$page")
         }
-
-        if (genreFilter != null && genreFilter.state != 0) {
-            val genreUrl = "$baseUrl/tags/${getGenreList()[genreFilter.state].second}/"
-            return GET("$genreUrl?page=$page", headers)
-        }
-
-        // Si hay query de búsqueda, usar Google Custom Search
-        if (query.isNotEmpty()) {
-            val searchId = "198660"
-            val url = "$baseUrl/search/$searchId/".toHttpUrl().newBuilder().apply {
-                addQueryParameter("q", query)
-                addQueryParameter("o", "date")
-                fragment("gsc.tab=0&gsc.q=$query&gsc.page=$page")
-            }
-            return GET(url.build(), headers)
-        }
-
-        // Por defecto, mostrar todos los comics
-        return GET("$baseUrl/comics/?page=$page", headers)
+        return GET(url.build(), headers)
     }
 
     override fun popularMangaFromElement(element: Element): SManga {
@@ -86,15 +60,12 @@ class AnimeBBG : ParsedHttpSource() {
         }
 
         // Cargar página del manga para obtener el thumbnail
-        try {
-            val response = client.newCall(GET(baseUrl + manga.url, headers)).execute()
-            response.use {
-                val detailsDoc = org.jsoup.Jsoup.parse(it.body.string())
-                manga.thumbnail_url = detailsDoc.selectFirst("img[alt='Resource banner']")?.attr("src")
-            }
-        } catch (e: Exception) {
-            manga.thumbnail_url = ""
-        }
+        val response = client.newCall(GET(baseUrl + manga.url, headers)).execute()
+        val detailsDoc = org.jsoup.Jsoup.parse(response.body!!.string())
+        response.close()
+
+        manga.thumbnail_url =
+            detailsDoc.selectFirst("img[alt='Resource banner']")?.attr("src")
 
         return manga
     }
@@ -120,10 +91,10 @@ class AnimeBBG : ParsedHttpSource() {
             // Intentar obtener thumbnail de la página de detalles si es necesario
             try {
                 val response = client.newCall(GET(baseUrl + manga.url, headers)).execute()
-                response.use {
-                    val detailsDoc = org.jsoup.Jsoup.parse(it.body.string())
-                    manga.thumbnail_url = detailsDoc.selectFirst("img[alt='Resource banner']")?.attr("src")
-                }
+                val detailsDoc = org.jsoup.Jsoup.parse(response.body!!.string())
+                response.close()
+
+                manga.thumbnail_url = detailsDoc.selectFirst("img[alt='Resource banner']")?.attr("src")
             } catch (e: Exception) {
                 // Si falla, continuar sin thumbnail
                 manga.thumbnail_url = ""
@@ -135,93 +106,35 @@ class AnimeBBG : ParsedHttpSource() {
 
     override fun searchMangaParse(response: Response): MangasPage {
         val document = org.jsoup.Jsoup.parse(response.body.string())
-        val url = response.request.url.toString()
 
-        // Si es una búsqueda de Google Custom Search
-        if (url.contains("/search/")) {
-            // Filtrar resultados para incluir solo comics y excluir capítulos/updates/temas
-            val mangas = document.select(".cse-result").mapNotNull { element ->
-                val linkElement = element.selectFirst("a")
-                val href = linkElement?.attr("href") ?: ""
+        // Filtrar resultados para incluir solo comics y excluir capítulos/updates/temas
+        val mangas = document.select(".cse-result").mapNotNull { element ->
+            val linkElement = element.selectFirst("a")
+            val href = linkElement?.attr("href") ?: ""
 
-                // Filtrar solo enlaces que sean de comics y no de capítulos, updates o temas
-                if (href.contains("/comics/") &&
-                    !href.contains("/update/") &&
-                    !href.contains("/capitulo") &&
-                    !href.contains("/temas/") &&
-                    !href.contains("Capítulo") &&
-                    !href.contains("Capitulo")
-                ) {
-                    try {
-                        searchMangaFromElement(element)
-                    } catch (e: Exception) {
-                        null
-                    }
-                } else {
+            // Filtrar solo enlaces que sean de comics y no de capítulos, updates o temas
+            if (href.contains("/comics/") &&
+                !href.contains("/update/") &&
+                !href.contains("/capitulo") &&
+                !href.contains("/temas/") &&
+                !href.contains("Capítulo") &&
+                !href.contains("Capitulo")
+            ) {
+                try {
+                    searchMangaFromElement(element)
+                } catch (e: Exception) {
                     null
                 }
-            }.filter { manga -> manga.title.isNotEmpty() }
+            } else {
+                null
+            }
+        }.filter { manga -> manga.title.isNotEmpty() } // Filtrar mangas con título vacío
 
-            val hasNextPage = document.selectFirst("a[aria-label='Go to the next page']") != null
-            return MangasPage(mangas, hasNextPage)
-        }
+        // Verificar si hay página siguiente
+        val hasNextPage = document.selectFirst("a[aria-label='Go to the next page']") != null
 
-        // Si es navegación por filtros (tipo o género), usar el selector normal
-        return popularMangaParse(response)
+        return MangasPage(mangas, hasNextPage)
     }
-
-    override fun getFilterList(): FilterList = FilterList(
-        Filter.Header("Nota: Los filtros no se pueden combinar con búsqueda de texto"),
-        Filter.Separator(),
-        TypeFilter(),
-        GenreFilter(),
-    )
-
-    private class TypeFilter : Filter.Select<String>(
-        "Tipo",
-        arrayOf("Todos", "Manga", "Manhua", "Manhwa"),
-    )
-
-    private class GenreFilter : Filter.Select<String>(
-        "Género",
-        getGenreNames(),
-    )
-
-    companion object {
-        private fun getGenreNames() = listOf(
-            "Todos",
-            "Acción",
-            "Recuentos de la vida",
-            "Aventura",
-            "Comedia",
-            "Drama",
-            "Fantasía",
-            "Magia",
-            "Webcomic",
-            "Harem",
-            "Reencarnación",
-            "Ciencia ficción",
-            "Supervivencia",
-        ).toTypedArray()
-    }
-
-    private fun getGenreList() = listOf(
-        "Todos" to "",
-        "Acción" to "accion",
-        "Recuentos de la vida" to "recuentos-de-la-vida",
-        "Aventura" to "aventura",
-        "Comedia" to "comedia",
-        "Drama" to "drama",
-        "Fantasía" to "fantasia",
-        "Magia" to "magia",
-        "Webcomic" to "webcomic",
-        "Harem" to "harem",
-        "Reencarnación" to "reencarnacion",
-        "Ciencia ficción" to "ciencia-ficcion",
-        "Supervivencia" to "supervivencia",
-    )
-
-    private inline fun <reified T> Iterable<*>.findInstance() = find { it is T } as? T
 
     override fun mangaDetailsParse(document: Document): SManga = SManga.create().apply {
         title = document.selectFirst("h1.p-title-value")?.text()
@@ -266,47 +179,79 @@ class AnimeBBG : ParsedHttpSource() {
     }
 
     override fun chapterListRequest(manga: SManga): Request {
-        return GET("$baseUrl${manga.url}capitulos", headers)
+        return chapterListRequest(manga, 1)
+    }
+
+    // Método para solicitar capítulos con paginación
+    private fun chapterListRequest(manga: SManga, page: Int): Request {
+        return GET("$baseUrl${manga.url}capitulos?page=$page", headers)
+    }
+
+    override fun chapterFromElement(element: Element): SChapter = SChapter.create().apply {
+        setUrlWithoutDomain(element.attr("href"))
+        name = element.text().trim()
+
+        // Buscar fecha en el contenedor del capítulo
+        val dateElement = element.closest(".structItem")?.selectFirst("time")
+        date_upload = dateElement?.attr("datetime")?.let {
+            parseDate(it)
+        } ?: 0L
+    }
+
+    private fun parseDate(date: String): Long {
+        return try {
+            java.time.OffsetDateTime.parse(date).toInstant().toEpochMilli()
+        } catch (_: Exception) {
+            0L
+        }
     }
 
     override fun chapterListParse(response: Response): List<SChapter> {
-        val allChapters = mutableListOf<SChapter>()
+        val document = org.jsoup.Jsoup.parse(response.body.string())
+        val chapters = mutableListOf<SChapter>()
+        
+        // Obtener capítulos de la página actual
+        val currentPageChapters = document.select(chapterListSelector()).map { element ->
+            chapterFromElement(element)
+        }
+        chapters.addAll(currentPageChapters)
+        
+        // Verificar si hay más páginas y cargar todos los capítulos
         var currentPage = 1
-        var hasNextPage = true
-
-        // Parsear la primera página (ya tenemos la respuesta)
-        val document = response.asJsoup()
-        allChapters.addAll(document.select(chapterListSelector()).map { chapterFromElement(it) })
-
-        // Verificar si hay más páginas
-        hasNextPage = document.selectFirst("a.pageNavSimple-el--next") != null
-
-        // Si hay más páginas, obtener todas
+        var hasNextPage = document.selectFirst(popularMangaNextPageSelector()) != null
+        
+        // Obtener la URL base del manga desde la respuesta actual
+        val currentUrl = response.request.url.toString()
+        val mangaUrl = currentUrl.substringBefore("capitulos")
+        val manga = SManga.create().apply {
+            setUrlWithoutDomain(mangaUrl.removePrefix(baseUrl))
+        }
+        
         while (hasNextPage) {
             currentPage++
-            val nextPageUrl = "${response.request.url}?page=$currentPage"
-            
             try {
-                val nextResponse = client.newCall(GET(nextPageUrl, headers)).execute()
-                nextResponse.use {
-                    val nextDocument = it.asJsoup()
-                    val chaptersOnPage = nextDocument.select(chapterListSelector()).map { element -> 
-                        chapterFromElement(element) 
-                    }
-                    
-                    if (chaptersOnPage.isNotEmpty()) {
-                        allChapters.addAll(chaptersOnPage)
-                        hasNextPage = nextDocument.selectFirst("a.pageNavSimple-el--next") != null
-                    } else {
-                        hasNextPage = false
-                    }
+                val nextPageResponse = client.newCall(chapterListRequest(manga, currentPage)).execute()
+                val nextPageDocument = org.jsoup.Jsoup.parse(nextPageResponse.body.string())
+                nextPageResponse.close()
+                
+                val nextPageChapters = nextPageDocument.select(chapterListSelector()).map { element ->
+                    chapterFromElement(element)
+                }
+                
+                if (nextPageChapters.isNotEmpty()) {
+                    chapters.addAll(nextPageChapters)
+                    hasNextPage = nextPageDocument.selectFirst(popularMangaNextPageSelector()) != null
+                } else {
+                    hasNextPage = false
                 }
             } catch (e: Exception) {
+                // Si hay error cargando la página, detener la paginación
                 hasNextPage = false
             }
         }
-
-        return allChapters.reversed()
+        
+        // Retornar capítulos en orden reverso (más recientes primero)
+        return chapters.reversed()
     }
 
     override fun pageListParse(document: Document): List<Page> {
