@@ -269,27 +269,44 @@ class AnimeBBG : ParsedHttpSource() {
         return GET("$baseUrl${manga.url}capitulos", headers)
     }
 
-    override fun chapterFromElement(element: Element): SChapter = SChapter.create().apply {
-        setUrlWithoutDomain(element.attr("href"))
-        name = element.text().trim()
-
-        // Buscar fecha en el contenedor del capítulo
-        val dateElement = element.closest(".structItem")?.selectFirst("time")
-        date_upload = dateElement?.attr("datetime")?.let {
-            parseDate(it)
-        } ?: 0L
-    }
-
-    private fun parseDate(date: String): Long {
-        return try {
-            java.time.OffsetDateTime.parse(date).toInstant().toEpochMilli()
-        } catch (_: Exception) {
-            0L
-        }
-    }
-
     override fun chapterListParse(response: Response): List<SChapter> {
-        return super.chapterListParse(response).reversed()
+        val allChapters = mutableListOf<SChapter>()
+        var currentPage = 1
+        var hasNextPage = true
+
+        // Parsear la primera página (ya tenemos la respuesta)
+        val document = response.asJsoup()
+        allChapters.addAll(document.select(chapterListSelector()).map { chapterFromElement(it) })
+
+        // Verificar si hay más páginas
+        hasNextPage = document.selectFirst("a.pageNavSimple-el--next") != null
+
+        // Si hay más páginas, obtener todas
+        while (hasNextPage) {
+            currentPage++
+            val nextPageUrl = "${response.request.url}?page=$currentPage"
+            
+            try {
+                val nextResponse = client.newCall(GET(nextPageUrl, headers)).execute()
+                nextResponse.use {
+                    val nextDocument = it.asJsoup()
+                    val chaptersOnPage = nextDocument.select(chapterListSelector()).map { element -> 
+                        chapterFromElement(element) 
+                    }
+                    
+                    if (chaptersOnPage.isNotEmpty()) {
+                        allChapters.addAll(chaptersOnPage)
+                        hasNextPage = nextDocument.selectFirst("a.pageNavSimple-el--next") != null
+                    } else {
+                        hasNextPage = false
+                    }
+                }
+            } catch (e: Exception) {
+                hasNextPage = false
+            }
+        }
+
+        return allChapters.reversed()
     }
 
     override fun pageListParse(document: Document): List<Page> {
