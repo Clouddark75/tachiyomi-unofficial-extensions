@@ -209,35 +209,35 @@ class AnimeBBG : ParsedHttpSource() {
     override fun chapterListParse(response: Response): List<SChapter> {
         val document = org.jsoup.Jsoup.parse(response.body.string())
         val chapters = mutableListOf<SChapter>()
-        
+
         // Obtener capítulos de la página actual
         val currentPageChapters = document.select(chapterListSelector()).map { element ->
             chapterFromElement(element)
         }
         chapters.addAll(currentPageChapters)
-        
+
         // Verificar si hay más páginas y cargar todos los capítulos
         var currentPage = 1
         var hasNextPage = document.selectFirst(popularMangaNextPageSelector()) != null
-        
+
         // Obtener la URL base del manga desde la respuesta actual
         val currentUrl = response.request.url.toString()
         val mangaUrl = currentUrl.substringBefore("capitulos")
         val manga = SManga.create().apply {
             setUrlWithoutDomain(mangaUrl.removePrefix(baseUrl))
         }
-        
+
         while (hasNextPage) {
             currentPage++
             try {
                 val nextPageResponse = client.newCall(chapterListRequest(manga, currentPage)).execute()
                 val nextPageDocument = org.jsoup.Jsoup.parse(nextPageResponse.body.string())
                 nextPageResponse.close()
-                
+
                 val nextPageChapters = nextPageDocument.select(chapterListSelector()).map { element ->
                     chapterFromElement(element)
                 }
-                
+
                 if (nextPageChapters.isNotEmpty()) {
                     chapters.addAll(nextPageChapters)
                     hasNextPage = nextPageDocument.selectFirst(popularMangaNextPageSelector()) != null
@@ -249,7 +249,7 @@ class AnimeBBG : ParsedHttpSource() {
                 hasNextPage = false
             }
         }
-        
+
         // Retornar capítulos en orden reverso (más recientes primero)
         return chapters.reversed()
     }
