@@ -205,8 +205,6 @@ class AnimeBBG : ParsedHttpSource() {
         ).toTypedArray()
     }
 
-    private inline fun <reified T> Iterable<*>.findInstance() = find { it is T } as? T
-
     private fun getGenreList() = listOf(
         "Todos" to "",
         "Acción" to "accion",
