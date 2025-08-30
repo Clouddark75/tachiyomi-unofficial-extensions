@@ -205,6 +205,8 @@ class AnimeBBG : ParsedHttpSource() {
         ).toTypedArray()
     }
 
+    private inline fun <reified T> Iterable<*>.findInstance() = find { it is T } as? T
+
     private fun getGenreList() = listOf(
         "Todos" to "",
         "Acción" to "accion",
@@ -220,6 +222,8 @@ class AnimeBBG : ParsedHttpSource() {
         "Ciencia ficción" to "ciencia-ficcion",
         "Supervivencia" to "supervivencia",
     )
+
+    private inline fun <reified T> Iterable<*>.findInstance() = find { it is T } as? T
 
     override fun mangaDetailsParse(document: Document): SManga = SManga.create().apply {
         title = document.selectFirst("h1.p-title-value")?.text()
