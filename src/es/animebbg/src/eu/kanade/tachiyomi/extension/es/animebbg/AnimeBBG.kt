@@ -210,6 +210,9 @@ class AnimeBBG : ParsedHttpSource() {
         val document = org.jsoup.Jsoup.parse(response.body.string())
         val chapters = mutableListOf<SChapter>()
 
+        // Obtener las fechas del manga desde la página de detalles
+        val mangaTimestamps = getMangaTimestamps(response, document)
+
         // Obtener capítulos de la página actual
         val currentPageChapters = document.select(chapterListSelector()).map { element ->
             chapterFromElement(element)
@@ -250,8 +253,109 @@ class AnimeBBG : ParsedHttpSource() {
             }
         }
 
+        // Aplicar timestamps a capítulos sin fecha
+        applyTimestampsToChapters(chapters, mangaTimestamps)
+
         // Retornar capítulos en orden reverso (más recientes primero)
         return chapters.reversed()
+    }
+
+    private fun getMangaTimestamps(response: Response, document: Document): Pair<Long, Long> {
+        // Intentar obtener las fechas de la página de capítulos actual
+        var firstReleaseTimestamp = 0L
+        var lastUpdateTimestamp = 0L
+
+        // Si no están en la página de capítulos, obtenerlas de la página principal del manga
+        if (document.select("dl.pairs--justified").isEmpty()) {
+            try {
+                val currentUrl = response.request.url.toString()
+                val mangaUrl = currentUrl.substringBefore("capitulos")
+                val mangaResponse = client.newCall(GET(mangaUrl, headers)).execute()
+                val mangaDocument = org.jsoup.Jsoup.parse(mangaResponse.body.string())
+                mangaResponse.close()
+
+                // Buscar "Primer lanzamiento"
+                mangaDocument.select("dl.pairs--justified").forEach { dl ->
+                    val dt = dl.selectFirst("dt")?.text()?.trim()
+                    if (dt?.contains("Primer lanzamiento", ignoreCase = true) == true) {
+                        val datetime = dl.selectFirst("time")?.attr("datetime")
+                        if (!datetime.isNullOrEmpty()) {
+                            firstReleaseTimestamp = parseDate(datetime)
+                        }
+                    }
+                    // Buscar "Ultima actualización"
+                    if (dt?.contains("Ultima actualización", ignoreCase = true) == true ||
+                        dt?.contains("Última actualización", ignoreCase = true) == true
+                    ) {
+                        val datetime = dl.selectFirst("time")?.attr("datetime")
+                        if (!datetime.isNullOrEmpty()) {
+                            lastUpdateTimestamp = parseDate(datetime)
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                // Si hay error, usar valores por defecto
+            }
+        } else {
+            // Buscar en la página actual
+            document.select("dl.pairs--justified").forEach { dl ->
+                val dt = dl.selectFirst("dt")?.text()?.trim()
+                if (dt?.contains("Primer lanzamiento", ignoreCase = true) == true) {
+                    val datetime = dl.selectFirst("time")?.attr("datetime")
+                    if (!datetime.isNullOrEmpty()) {
+                        firstReleaseTimestamp = parseDate(datetime)
+                    }
+                }
+                if (dt?.contains("Ultima actualización", ignoreCase = true) == true ||
+                    dt?.contains("Última actualización", ignoreCase = true) == true
+                ) {
+                    val datetime = dl.selectFirst("time")?.attr("datetime")
+                    if (!datetime.isNullOrEmpty()) {
+                        lastUpdateTimestamp = parseDate(datetime)
+                    }
+                }
+            }
+        }
+
+        return Pair(firstReleaseTimestamp, lastUpdateTimestamp)
+    }
+
+    private fun applyTimestampsToChapters(chapters: MutableList<SChapter>, timestamps: Pair<Long, Long>) {
+        val (firstReleaseTimestamp, lastUpdateTimestamp) = timestamps
+
+        if (chapters.isEmpty()) return
+
+        // Contar capítulos sin fecha
+        val chaptersWithoutDate = chapters.filter { it.date_upload == 0L }
+        val chaptersWithDate = chapters.filter { it.date_upload != 0L }
+
+        if (chaptersWithoutDate.isNotEmpty()) {
+            // Si todos los capítulos no tienen fecha
+            if (chaptersWithDate.isEmpty()) {
+                // Usar última actualización para los primeros capítulos y primer lanzamiento para los últimos
+                val totalChapters = chapters.size
+                chapters.forEachIndexed { index, chapter ->
+                    if (chapter.date_upload == 0L) {
+                        // Los primeros capítulos (índice bajo) son más recientes
+                        val ratio = index.toFloat() / totalChapters.toFloat()
+                        if (ratio < 0.3f && lastUpdateTimestamp > 0) {
+                            // 30% de capítulos más recientes usan última actualización
+                            chapter.date_upload = lastUpdateTimestamp
+                        } else if (ratio > 0.7f && firstReleaseTimestamp > 0) {
+                            // 30% de capítulos más antiguos usan primer lanzamiento
+                            chapter.date_upload = firstReleaseTimestamp
+                        }
+                    }
+                }
+            } else {
+                // Si algunos capítulos tienen fecha, usar última actualización para los recientes sin fecha
+                chaptersWithoutDate.take(5).forEach { chapter ->
+                    if (lastUpdateTimestamp > 0) {
+                        chapter.date_upload = lastUpdateTimestamp
+                    }
+                }
+            }
+        }
     }
 
     override fun pageListParse(document: Document): List<Page> {
