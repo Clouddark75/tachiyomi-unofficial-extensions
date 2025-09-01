@@ -50,14 +50,19 @@ class AnimeBBG : ParsedHttpSource() {
     }
 
     override fun searchMangaRequest(page: Int, query: String, filters: FilterList): Request {
-        val searchId = "198660" // ID del motor de búsqueda de Google Custom Search
-        val url = "$baseUrl/search/$searchId/".toHttpUrl().newBuilder().apply {
-            addQueryParameter("q", query)
-            addQueryParameter("o", "date")
-            fragment("gsc.tab=0&gsc.q=$query&gsc.page=$page")
-        }
-        return GET(url.build(), headers)
-    }
+        // Paso 1: obtener el engineId dinámico
+
+        val doc = client.newCall(GET(url, headers)).execute().asJsoup()
+
+        // Busca en scripts el engineId, ej: /search/198660/
+        val script = doc.selectFirst("script:containsData(search/)")?.data()
+        val engineId = Regex("/search/(\\d+)/").find(script ?: "")?.groupValues?.get(1)
+                ?: throw Exception("No se pudo encontrar engine ID para búsqueda")
+
+        // Paso 2: construir la url final de búsqueda
+        val searchUrl = "$baseUrl/search/$engineId/?q=$query&o=date#gsc.tab=0&gsc.q=$query&gsc.page=$page"
+        return GET(searchUrl, headers)
+}
 
     override fun popularMangaFromElement(element: Element): SManga {
         val manga = SManga.create().apply {
@@ -111,34 +116,21 @@ class AnimeBBG : ParsedHttpSource() {
     }
 
     override fun searchMangaParse(response: Response): MangasPage {
-        val document = org.jsoup.Jsoup.parse(response.body.string())
+        val doc = response.asJsoup()
 
-        // Filtrar resultados para incluir solo comics y excluir capítulos/updates/temas
-        val mangas = document.select(".cse-result").mapNotNull { element ->
-            val linkElement = element.selectFirst("a")
-            val href = linkElement?.attr("href") ?: ""
+        val mangas = doc.select("div.structItem--comic").mapNotNull { element ->
+                val title = element.selectFirst(".structItem-title")?.text() ?: return@mapNotNull null
+                // Filtramos resultados que sean capítulos
+                if (title.contains("Capítulo", true) || title.contains("Capitulo", true)) return@mapNotNull null
 
-            // Filtrar solo enlaces que sean de comics y no de capítulos, updates o temas
-            if (href.contains("/comics/") &&
-                !href.contains("/update/") &&
-                !href.contains("/capitulo") &&
-                !href.contains("/temas/") &&
-                !href.contains("Capítulo") &&
-                !href.contains("Capitulo")
-            ) {
-                try {
-                    searchMangaFromElement(element)
-                } catch (e: Exception) {
-                    null
+                SManga.create().apply {
+                        setUrlWithoutDomain(element.selectFirst("a.structItem-title")?.attr("href") ?: return@mapNotNull null)
+                        this.title = title
+                        this.thumbnail_url = element.selectFirst("img")?.attr("src")
                 }
-            } else {
-                null
-            }
-        }.filter { manga -> manga.title.isNotEmpty() } // Filtrar mangas con título vacío
+        }
 
-        // Verificar si hay página siguiente
-        val hasNextPage = document.selectFirst("a[aria-label='Go to the next page']") != null
-
+        val hasNextPage = doc.select("a.pageNav-jump--next").isNotEmpty()
         return MangasPage(mangas, hasNextPage)
     }
 
