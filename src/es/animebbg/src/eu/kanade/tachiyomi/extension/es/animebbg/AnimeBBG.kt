@@ -12,7 +12,8 @@ import okhttp3.Request
 import okhttp3.Response
 import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
-import java.time.OffsetDateTime
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 class AnimeBBG : ParsedHttpSource() {
 
@@ -20,6 +21,11 @@ class AnimeBBG : ParsedHttpSource() {
     override val baseUrl = "https://animebbg.net"
     override val lang = "es"
     override val supportsLatest = true
+
+    // Formato de fecha para parsing
+    private val dateFormat by lazy {
+        SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ", Locale.ENGLISH)
+    }
 
     override fun popularMangaSelector(): String = "a[data-tp-primary='on']"
     override fun latestUpdatesSelector(): String = popularMangaSelector()
@@ -200,9 +206,19 @@ class AnimeBBG : ParsedHttpSource() {
 
     private fun parseDate(date: String): Long {
         return try {
-            java.time.OffsetDateTime.parse(date).toInstant().toEpochMilli()
-        } catch (_: Exception) {
-            0L
+            // El formato es: 2025-08-31T20:33:04-0500
+            // Necesitamos manejar el offset de zona horaria
+            val cleanDate = date.replace("([+-]\\d{2})(\\d{2})$".toRegex(), "$1:$2")
+            dateFormat.parse(cleanDate.replace(":", ""))?.time ?: 0L
+        } catch (e: Exception) {
+            try {
+                // Intentar con SimpleDateFormat alternativo para el formato ISO
+                val isoFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssX", Locale.ENGLISH)
+                val cleanDate = date.replace("([+-]\\d{2})(\\d{2})$".toRegex(), "$1:$2")
+                isoFormat.parse(cleanDate)?.time ?: 0L
+            } catch (e2: Exception) {
+                0L
+            }
         }
     }
 
