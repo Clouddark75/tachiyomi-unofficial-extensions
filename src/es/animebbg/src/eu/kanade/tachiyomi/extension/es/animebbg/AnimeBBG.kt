@@ -50,17 +50,17 @@ class AnimeBBG : ParsedHttpSource() {
     }
 
     override fun searchMangaRequest(page: Int, query: String, filters: FilterList): Request {
-    // Paso 1: obtener el engineId dinámico
-    val doc = client.newCall(GET("$baseUrl/search/?q=$query", headers)).execute().asJsoup()
+        // Paso 1: obtener el engineId dinámico
+        val doc = client.newCall(GET("$baseUrl/search/?q=$query", headers)).execute().asJsoup()
 
-    // Busca en scripts el engineId, ej: /search/198660/
-    val script = doc.selectFirst("script:containsData(search/)")?.data()
-    val engineId = Regex("/search/(\\d+)/").find(script ?: "")?.groupValues?.get(1)
-        ?: throw Exception("No se pudo encontrar engine ID para búsqueda")
+        // Busca en scripts el engineId, ej: /search/198660/
+        val script = doc.selectFirst("script:containsData(search/)")?.data()
+        val engineId = Regex("/search/(\\d+)/").find(script ?: "")?.groupValues?.get(1)
+                ?: throw Exception("No se pudo encontrar engine ID para búsqueda")
 
-    // Paso 2: construir la url final de búsqueda
-    val searchUrl = "$baseUrl/search/$engineId/?q=$query&o=date#gsc.tab=0&gsc.q=$query&gsc.page=$page"
-    return GET(searchUrl, headers)
+        // Paso 2: construir la url final de búsqueda
+        val searchUrl = "$baseUrl/search/$engineId/?q=$query&o=date#gsc.tab=0&gsc.q=$query&gsc.page=$page"
+        return GET(searchUrl, headers)
     }
 
     override fun popularMangaFromElement(element: Element): SManga {
@@ -115,23 +115,23 @@ class AnimeBBG : ParsedHttpSource() {
     }
 
     override fun searchMangaParse(response: Response): MangasPage {
-    val doc = response.asJsoup()
+        val doc = response.asJsoup()
 
-    val mangas = doc.select("div.structItem--comic").mapNotNull { element: Element ->
-        val title = element.selectFirst(".structItem-title")?.text() ?: return@mapNotNull null
+        val mangas = doc.select("div.structItem--comic").mapNotNull { element: Element ->
+                val title = element.selectFirst(".structItem-title")?.text() ?: return@mapNotNull null
 
-        // Filtramos resultados que sean capítulos
-        if (title.contains("Capítulo", true) || title.contains("Capitulo", true)) return@mapNotNull null
+                // Filtramos resultados que sean capítulos
+                if (title.contains("Capítulo", true) || title.contains("Capitulo", true)) return@mapNotNull null
 
-        SManga.create().apply {
-            setUrlWithoutDomain(element.selectFirst("a.structItem-title")?.attr("href") ?: return@mapNotNull null)
-            this.title = title
-            this.thumbnail_url = element.selectFirst("img")?.attr("src")
+                SManga.create().apply {
+                        setUrlWithoutDomain(element.selectFirst("a.structItem-title")?.attr("href") ?: return@mapNotNull null)
+                        this.title = title
+                        this.thumbnail_url = element.selectFirst("img")?.attr("src")
+                }
         }
-    }
 
-    val hasNextPage = doc.select("a.pageNav-jump--next").isNotEmpty()
-    return MangasPage(mangas, hasNextPage)
+        val hasNextPage = doc.select("a.pageNav-jump--next").isNotEmpty()
+        return MangasPage(mangas, hasNextPage)
     }
 
     override fun mangaDetailsParse(document: Document): SManga = SManga.create().apply {
