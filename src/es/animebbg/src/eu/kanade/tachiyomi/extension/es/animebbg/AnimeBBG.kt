@@ -123,9 +123,9 @@ class AnimeBBG : ParsedHttpSource() {
             if (title.contains("Capítulo", true) || title.contains("Capitulo", true)) return@mapNotNull null
 
             SManga.create().apply {
-            setUrlWithoutDomain(element.selectFirst("a.structItem-title")?.attr("href") ?: return@mapNotNull null)
-            this.title = title
-            this.thumbnail_url = element.selectFirst("img")?.attr("src")
+                setUrlWithoutDomain(element.selectFirst("a.structItem-title")?.attr("href") ?: return@mapNotNull null)
+                this.title = title
+                this.thumbnail_url = element.selectFirst("img")?.attr("src")
             }
         }
 
