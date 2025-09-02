@@ -118,15 +118,15 @@ class AnimeBBG : ParsedHttpSource() {
         val doc = response.asJsoup()
 
         val mangas = doc.select("div.structItem--comic").mapNotNull { element ->
-        val title = element.selectFirst(".structItem-title")?.text() ?: return@mapNotNull null
-        // Filtramos resultados que sean capítulos
-        if (title.contains("Capítulo", true) || title.contains("Capitulo", true)) return@mapNotNull null
+            val title = element.selectFirst(".structItem-title")?.text() ?: return@mapNotNull null
+            // Filtramos resultados que sean capítulos
+            if (title.contains("Capítulo", true) || title.contains("Capitulo", true)) return@mapNotNull null
 
-        SManga.create().apply {
-        setUrlWithoutDomain(element.selectFirst("a.structItem-title")?.attr("href") ?: return@mapNotNull null)
-        this.title = title
-        this.thumbnail_url = element.selectFirst("img")?.attr("src")
-                }
+            SManga.create().apply {
+            setUrlWithoutDomain(element.selectFirst("a.structItem-title")?.attr("href") ?: return@mapNotNull null)
+            this.title = title
+            this.thumbnail_url = element.selectFirst("img")?.attr("src")
+            }
         }
 
         val hasNextPage = doc.select("a.pageNav-jump--next").isNotEmpty()
