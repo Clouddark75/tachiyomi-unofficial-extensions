@@ -95,6 +95,11 @@ class AnimeBBG : ParsedHttpSource() {
                 ?: element.selectFirst("a[href*='/comics/']")
             manga.title = titleElement?.text()?.trim()
                 ?.replace(Regex("\\s*ES\\s*"), "")
+                ?.replace(Regex("\\s*Manhua\\s*"), "")
+                ?.replace(Regex("\\s*Manga\\s*"), "")
+                ?.replace(Regex("\\s*Webtoon\\s*"), "")
+                ?.replace(Regex("\\s*Comic\\s*"), "")
+                ?.replace(Regex("\\s*Manhwa\\s*"), "")
                 ?.replace(Regex("\\s*-\\s*AnimeBBG.*"), "")
                 ?.trim() ?: ""
 
