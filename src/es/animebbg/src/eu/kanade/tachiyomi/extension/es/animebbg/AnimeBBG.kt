@@ -142,6 +142,11 @@ class AnimeBBG : ParsedHttpSource() {
     override fun mangaDetailsParse(document: Document): SManga = SManga.create().apply {
         title = document.selectFirst("h1.p-title-value")?.text()
             ?.replace(Regex("\\s*ES\\s*"), "")
+                ?.replace(Regex("\\s*Manhua\\s*"), "")
+                ?.replace(Regex("\\s*Manga\\s*"), "")
+                ?.replace(Regex("\\s*Webtoon\\s*"), "")
+                ?.replace(Regex("\\s*Comic\\s*"), "")
+                ?.replace(Regex("\\s*Manhwa\\s*"), "")
             ?.trim() ?: ""
         thumbnail_url = document.selectFirst("img[alt='Resource banner']")?.attr("src")
 
