@@ -1,4 +1,4 @@
-apply plugin: 'com.android.library'
+apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
 apply plugin: 'kotlinx-serialization'
 
@@ -17,27 +17,6 @@ dependencies {
     compileOnly 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.5.2'
     
     implementation 'androidx.preference:preference:1.2.0'
-}
-
-android {
-    compileSdkVersion 34
-    namespace 'eu.kanade.tachiyomi.extension.all.webdav'
-    
-    defaultConfig {
-        minSdkVersion 21
-        targetSdkVersion 34
-        versionCode extVersionCode
-        versionName "1.0.$extVersionCode"
-    }
-    
-    compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
-    }
-    
-    kotlinOptions {
-        jvmTarget = '1.8'
-    }
 }
 
 apply from: "$rootDir/common.gradle"
