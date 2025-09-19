@@ -39,3 +39,5 @@ android {
         jvmTarget = '1.8'
     }
 }
+
+apply from: "$rootDir/common.gradle"
