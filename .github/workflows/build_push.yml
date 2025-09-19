@@ -1,174 +1,237 @@
 name: CI
 
 on:
-  push:
-    branches:
-      - '**'
-    paths:
-      - '**'
-      - '!**.md'
-      - '!.github/**'
-      - '.github/scripts/**'
-      - '.github/workflows/build_push.yml'
-  workflow_dispatch:
-    inputs:
-      branch:
-        description: 'Branch to run the workflow from'
-        required: true
-        default: 'main'
-
-permissions: {}
+    push:
+        branches:
+            - master
+        paths-ignore:
+            - '**.md'
+            - '.github/workflows/issue_moderator.yml'
+    workflow_dispatch:
+        inputs:
+            branch:
+                description: 'Branch to run the workflow from'
+                required: true
+                default: 'master'
 
 concurrency:
-  group: ${{ github.workflow }}
-  cancel-in-progress: true
+    group: ${{ github.workflow }}
+    cancel-in-progress: true
 
 env:
-  CI_CHUNK_SIZE: 65
-  IS_PR_CHECK: false
+    CI_CHUNK_SIZE: 1
 
 jobs:
-
-  prepare:
-    name: Prepare job
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    outputs:
-      matrix: ${{ steps.generate-matrices.outputs.matrix }}
-      delete: ${{ steps.generate-matrices.outputs.delete }}
-    steps:
-      - name: Checkout branch
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
-        with:
-          fetch-depth: 0
-          persist-credentials: false
-          ref: ${{ github.event.inputs.branch }}
-
-      - name: Set up Java
-        uses: actions/setup-java@dded0888837ed1f317902acf8a20df0ad188d165 # v5.0.0
-        with:
-          java-version: 17
-          distribution: temurin
-
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@017a9effdb900e5b5b2fddfb590a105619dca3c3 # v4.4.2
-        with:
-          cache-read-only: true
-
-      - name: Grant execute permission on gradlew
-        run: chmod +x ./gradlew
-
-      - name: Get last successful CI commit
-        uses: nrwl/nx-set-shas@826660b82addbef3abff5fa871492ebad618c9e1 # v4.3.3
-        with:
-          fallback-sha: 4b825dc642cb6eb9a060e54bf8d69288fbee4904 # empty tree
-
-      - id: generate-matrices
-        name: Create output matrices
-        run: |
-          python ./.github/scripts/generate-build-matrices.py "$NX_BASE" Release
-
-  build:
-    name: Build extensions (${{ matrix.chunk.number }})
-    needs: prepare
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    if: ${{ toJson(fromJson(needs.prepare.outputs.matrix).chunk) != '[]' }}
-    strategy:
-      matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
-    steps:
-      - name: Checkout branch
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
-        with:
-          persist-credentials: false
-          ref: ${{ github.event.inputs.branch }}
-
-      - name: Set up Java
-        uses: actions/setup-java@dded0888837ed1f317902acf8a20df0ad188d165 # v5.0.0
-        with:
-          java-version: 17
-          distribution: temurin
-
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@017a9effdb900e5b5b2fddfb590a105619dca3c3 # v4.4.2
-        with:
-          cache-read-only: ${{ matrix.chunk.number > 1 }}
-
-      - name: Grant execute permission on gradlew
-        run: chmod +x ./gradlew
-
-      - name: Prepare signing key
-        run: |
-          echo ${{ secrets.SIGNING_KEY }} | base64 -d > signingkey.jks
-
-      - name: Build extensions (${{ matrix.chunk.number }})
+    prepare:
+        name: Prepare job
+        runs-on: ubuntu-latest
+        outputs:
+            individualMatrix: ${{ steps.generate-matrices.outputs.individualMatrix }}
+            multisrcMatrix: ${{ steps.generate-matrices.outputs.multisrcMatrix }}
         env:
-          MODULES: ${{ join(matrix.chunk.modules, ' ') }}
-          ALIAS: ${{ secrets.ALIAS }}
-          KEY_STORE_PASSWORD: ${{ secrets.KEY_STORE_PASSWORD }}
-          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-        run: |
-          ./gradlew $MODULES
+            CI_MODULE_GEN: true
+        steps:
+            - name: Clone repo
+              uses: actions/checkout@v4
+              with:
+                  ref: ${{ github.event.inputs.branch || 'master' }}
 
-      - name: Upload APKs (${{ matrix.chunk.number }})
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        if: "github.repository == 'Clouddark75/tachiyomi-unofficial-extensions'"
-        with:
-          name: "individual-apks-${{ matrix.chunk.number }}"
-          path: "**/*.apk"
-          retention-days: 1
+            - name: Validate Gradle Wrapper
+              uses: gradle/wrapper-validation-action@v2
 
-      - name: Clean up CI files
-        run: rm signingkey.jks
+            - name: Set up JDK
+              uses: actions/setup-java@v4
+              with:
+                  java-version: 17
+                  distribution: temurin
 
-  publish:
-    name: Publish extension repo
-    needs: [prepare, build]
-    if: "github.repository == 'Clouddark75/tachiyomi-unofficial-extensions'"
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - name: Download APK artifacts
-        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
-        with:
-          path: ~/apk-artifacts
+            - name: Setup Gradle
+              uses: gradle/actions/setup-gradle@v3
 
-      - name: Set up JDK
-        uses: actions/setup-java@dded0888837ed1f317902acf8a20df0ad188d165 # v5.0.0
-        with:
-          java-version: 17
-          distribution: temurin
+            - name: Make gradlew executable
+              run: chmod +x ./gradlew
 
-      - name: Checkout branch
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
-        with:
-          ref: ${{ github.event.inputs.branch }}
-          path: main
-          persist-credentials: false
+            - name: Generate multisrc sources
+              run: ./gradlew :multisrc:generateExtensions
 
-      - name: Grant execute permission on gradlew
-        run: chmod +x ./gradlew
+            - name: Get number of modules
+              run: |
+                  set -x
+                  ./gradlew -q projects | grep '.*extensions\:\(individual\|multisrc\)\:.*\:.*' > projects.txt
+                  
+                  echo "NUM_INDIVIDUAL_MODULES=$(cat projects.txt | grep '.*\:individual\:.*' | wc -l)" >> $GITHUB_ENV
+                  echo "NUM_MULTISRC_MODULES=$(cat projects.txt | grep '.*\:multisrc\:.*' | wc -l)" >> $GITHUB_ENV
 
-      - name: Create repo artifacts
-        run: |
-          cd main
-          python ./.github/scripts/move-built-apks.py
-          INSPECTOR_LINK="$(curl -s "https://api.github.com/repos/Clouddark75/tachiyomi-extensions-inspector/releases/latest" | jq -r '.assets[0].browser_download_url')"
-          curl -L "$INSPECTOR_LINK" -o ./Inspector.jar
-          java -jar ./Inspector.jar "repo/apk" "output.json" "tmp"
-          python ./.github/scripts/create-repo.py
+            - id: generate-matrices
+              name: Create output matrices
+              uses: actions/github-script@v7
+              with:
+                  script: |
+                      const numIndividualModules = process.env.NUM_INDIVIDUAL_MODULES;
+                      const numMultisrcModules = process.env.NUM_MULTISRC_MODULES;
+                      const chunkSize = process.env.CI_CHUNK_SIZE;
+                      
+                      const numIndividualChunks = Math.ceil(numIndividualModules / chunkSize);
+                      const numMultisrcChunks = Math.ceil(numMultisrcModules / chunkSize);
+                      
+                      console.log(`Individual modules: ${numIndividualModules} (${numIndividualChunks} chunks of ${chunkSize})`);
+                      console.log(`Multi-source modules: ${numMultisrcModules} (${numMultisrcChunks} chunks of ${chunkSize})`);
+                      
+                      core.setOutput('individualMatrix', { 'chunk': [...Array(numIndividualChunks).keys()] });
+                      core.setOutput('multisrcMatrix', { 'chunk': [...Array(numMultisrcChunks).keys()] });
 
-      - name: Checkout repo branch
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
-        with:
-          ref: repo
-          path: repo
-          persist-credentials: true
+    build_multisrc:
+        name: Build multisrc modules
+        needs: prepare
+        runs-on: ubuntu-latest
+        strategy:
+            matrix: ${{ fromJSON(needs.prepare.outputs.multisrcMatrix) }}
+        steps:
+            - name: Checkout branch
+              uses: actions/checkout@v4
+              with:
+                  ref: ${{ github.event.inputs.branch || 'master' }}
 
-      - name: Merge and deploy repo
-        env:
-          DELETE: ${{ needs.prepare.outputs.delete }}
-        run: |
-          cd repo
-          python ../main/.github/scripts/merge-repo.py "$DELETE"
-          ../main/.github/scripts/commit-repo.sh
+            - name: Set up JDK
+              uses: actions/setup-java@v4
+              with:
+                  java-version: 17
+                  distribution: temurin
+
+            - name: Setup Gradle
+              uses: gradle/actions/setup-gradle@v3
+
+            - name: Prepare signing key
+              if: github.repository == 'Clouddark75/tachiyomi-unofficial-extensions'
+              run: |
+                  echo ${{ secrets.SIGNING_KEY }} | base64 -d > signingkey.jks
+
+            - name: Make gradlew executable
+              run: chmod +x ./gradlew
+
+            - name: Generate sources from the multi-source library
+              env:
+                  CI_MODULE_GEN: "true"
+              run: ./gradlew :multisrc:generateExtensions
+
+            - name: Build extensions (chunk ${{ matrix.chunk }})
+              env:
+                  CI_MULTISRC: "true"
+                  CI_CHUNK_NUM: ${{ matrix.chunk }}
+                  ALIAS: ${{ secrets.ALIAS }}
+                  KEY_STORE_PASSWORD: ${{ secrets.KEY_STORE_PASSWORD }}
+                  KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+              run: ./gradlew assembleRelease
+
+            - name: Upload APKs (chunk ${{ matrix.chunk }})
+              uses: actions/upload-artifact@v4
+              if: github.repository == 'Clouddark75/tachiyomi-unofficial-extensions'
+              with:
+                  name: "multisrc-apks-${{ matrix.chunk }}"
+                  path: "**/*.apk"
+                  retention-days: 1
+
+            - name: Clean up CI files
+              if: github.repository == 'Clouddark75/tachiyomi-unofficial-extensions'
+              run: rm -f signingkey.jks
+
+    build_individual:
+        name: Build individual modules
+        needs: prepare
+        runs-on: ubuntu-latest
+        strategy:
+            matrix: ${{ fromJSON(needs.prepare.outputs.individualMatrix) }}
+        steps:
+            - name: Checkout branch
+              uses: actions/checkout@v4
+              with:
+                  ref: ${{ github.event.inputs.branch || 'master' }}
+
+            - name: Set up JDK
+              uses: actions/setup-java@v4
+              with:
+                  java-version: 17
+                  distribution: temurin
+
+            - name: Setup Gradle
+              uses: gradle/actions/setup-gradle@v3
+
+            - name: Prepare signing key
+              if: github.repository == 'Clouddark75/tachiyomi-unofficial-extensions'
+              run: |
+                  echo ${{ secrets.SIGNING_KEY }} | base64 -d > signingkey.jks
+
+            - name: Make gradlew executable
+              run: chmod +x ./gradlew
+
+            - name: Build extensions (chunk ${{ matrix.chunk }})
+              env:
+                  CI_MULTISRC: "false"
+                  CI_CHUNK_NUM: ${{ matrix.chunk }}
+                  ALIAS: ${{ secrets.ALIAS }}
+                  KEY_STORE_PASSWORD: ${{ secrets.KEY_STORE_PASSWORD }}
+                  KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+              run: ./gradlew assembleRelease
+
+            - name: Upload APKs (chunk ${{ matrix.chunk }})
+              uses: actions/upload-artifact@v4
+              if: github.repository == 'Clouddark75/tachiyomi-unofficial-extensions'
+              with:
+                  name: "individual-apks-${{ matrix.chunk }}"
+                  path: "**/*.apk"
+                  retention-days: 1
+
+            - name: Clean up CI files
+              if: github.repository == 'Clouddark75/tachiyomi-unofficial-extensions'
+              run: rm -f signingkey.jks
+
+    publish_repo:
+        name: Publish repo
+        needs:
+            - build_multisrc
+            - build_individual
+        if: github.repository == 'Clouddark75/tachiyomi-unofficial-extensions'
+        runs-on: ubuntu-latest
+        steps:
+            - name: Download APK artifacts
+              uses: actions/download-artifact@v4
+              with:
+                  path: ~/apk-artifacts
+                  pattern: "*-apks-*"
+                  merge-multiple: true
+
+            - name: Set up JDK
+              uses: actions/setup-java@v4
+              with:
+                  java-version: 17
+                  distribution: temurin
+
+            - name: Checkout repo branch
+              uses: actions/checkout@v4
+              with:
+                  ref: repo
+                  path: repo
+
+            - name: Create repo artifacts
+              run: |
+                  cd repo
+                  chmod +x ../.github/scripts/move-apks.sh
+                  chmod +x ../.github/scripts/create-repo.sh
+                  ../.github/scripts/move-apks.sh
+                  
+                  # Download inspector with better error handling
+                  INSPECTOR_LINK="$(curl -s "https://api.github.com/repos/tachiyomiorg/tachiyomi-extensions-inspector/releases/latest" | jq -r '.assets[0].browser_download_url')"
+                  if [ "$INSPECTOR_LINK" != "null" ]; then
+                      curl -L "$INSPECTOR_LINK" -o ./Inspector.jar
+                      java -jar ./Inspector.jar "apk" "output.json" "tmp"
+                  else
+                      echo "Warning: Could not download Inspector"
+                  fi
+                  
+                  ../.github/scripts/create-repo.sh
+
+            - name: Deploy repo
+              run: |
+                  cd repo
+                  chmod +x ../.github/scripts/commit-repo.sh
+                  ../.github/scripts/commit-repo.sh
