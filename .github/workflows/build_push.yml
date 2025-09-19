@@ -27,9 +27,6 @@ jobs:
         runs-on: ubuntu-latest
         outputs:
             individualMatrix: ${{ steps.generate-matrices.outputs.individualMatrix }}
-            multisrcMatrix: ${{ steps.generate-matrices.outputs.multisrcMatrix }}
-        env:
-            CI_MODULE_GEN: true
         steps:
             - name: Clone repo
               uses: actions/checkout@v4
@@ -51,89 +48,28 @@ jobs:
             - name: Make gradlew executable
               run: chmod +x ./gradlew
 
-            - name: Generate multisrc sources
-              run: ./gradlew :multisrc:generateExtensions
-
-            - name: Get number of modules
+            - name: Get number of individual modules
               run: |
                   set -x
-                  ./gradlew -q projects | grep '.*extensions\:\(individual\|multisrc\)\:.*\:.*' > projects.txt
+                  ./gradlew -q projects | grep '.*extensions\:individual\:.*\:.*' > projects.txt || echo "No individual extensions found"
                   
-                  echo "NUM_INDIVIDUAL_MODULES=$(cat projects.txt | grep '.*\:individual\:.*' | wc -l)" >> $GITHUB_ENV
-                  echo "NUM_MULTISRC_MODULES=$(cat projects.txt | grep '.*\:multisrc\:.*' | wc -l)" >> $GITHUB_ENV
+                  NUM_INDIVIDUAL=$(cat projects.txt | wc -l || echo "0")
+                  echo "NUM_INDIVIDUAL_MODULES=$NUM_INDIVIDUAL" >> $GITHUB_ENV
+                  echo "Found $NUM_INDIVIDUAL individual extension modules"
 
             - id: generate-matrices
               name: Create output matrices
               uses: actions/github-script@v7
               with:
                   script: |
-                      const numIndividualModules = process.env.NUM_INDIVIDUAL_MODULES;
-                      const numMultisrcModules = process.env.NUM_MULTISRC_MODULES;
-                      const chunkSize = process.env.CI_CHUNK_SIZE;
+                      const numIndividualModules = parseInt(process.env.NUM_INDIVIDUAL_MODULES) || 0;
+                      const chunkSize = parseInt(process.env.CI_CHUNK_SIZE) || 1;
                       
-                      const numIndividualChunks = Math.ceil(numIndividualModules / chunkSize);
-                      const numMultisrcChunks = Math.ceil(numMultisrcModules / chunkSize);
+                      const numIndividualChunks = Math.max(1, Math.ceil(numIndividualModules / chunkSize));
                       
                       console.log(`Individual modules: ${numIndividualModules} (${numIndividualChunks} chunks of ${chunkSize})`);
-                      console.log(`Multi-source modules: ${numMultisrcModules} (${numMultisrcChunks} chunks of ${chunkSize})`);
                       
                       core.setOutput('individualMatrix', { 'chunk': [...Array(numIndividualChunks).keys()] });
-                      core.setOutput('multisrcMatrix', { 'chunk': [...Array(numMultisrcChunks).keys()] });
-
-    build_multisrc:
-        name: Build multisrc modules
-        needs: prepare
-        runs-on: ubuntu-latest
-        strategy:
-            matrix: ${{ fromJSON(needs.prepare.outputs.multisrcMatrix) }}
-        steps:
-            - name: Checkout branch
-              uses: actions/checkout@v4
-              with:
-                  ref: ${{ github.event.inputs.branch || 'master' }}
-
-            - name: Set up JDK
-              uses: actions/setup-java@v4
-              with:
-                  java-version: 17
-                  distribution: temurin
-
-            - name: Setup Gradle
-              uses: gradle/actions/setup-gradle@v3
-
-            - name: Prepare signing key
-              if: github.repository == 'Clouddark75/tachiyomi-unofficial-extensions'
-              run: |
-                  echo ${{ secrets.SIGNING_KEY }} | base64 -d > signingkey.jks
-
-            - name: Make gradlew executable
-              run: chmod +x ./gradlew
-
-            - name: Generate sources from the multi-source library
-              env:
-                  CI_MODULE_GEN: "true"
-              run: ./gradlew :multisrc:generateExtensions
-
-            - name: Build extensions (chunk ${{ matrix.chunk }})
-              env:
-                  CI_MULTISRC: "true"
-                  CI_CHUNK_NUM: ${{ matrix.chunk }}
-                  ALIAS: ${{ secrets.ALIAS }}
-                  KEY_STORE_PASSWORD: ${{ secrets.KEY_STORE_PASSWORD }}
-                  KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-              run: ./gradlew assembleRelease
-
-            - name: Upload APKs (chunk ${{ matrix.chunk }})
-              uses: actions/upload-artifact@v4
-              if: github.repository == 'Clouddark75/tachiyomi-unofficial-extensions'
-              with:
-                  name: "multisrc-apks-${{ matrix.chunk }}"
-                  path: "**/*.apk"
-                  retention-days: 1
-
-            - name: Clean up CI files
-              if: github.repository == 'Clouddark75/tachiyomi-unofficial-extensions'
-              run: rm -f signingkey.jks
 
     build_individual:
         name: Build individual modules
@@ -187,9 +123,7 @@ jobs:
 
     publish_repo:
         name: Publish repo
-        needs:
-            - build_multisrc
-            - build_individual
+        needs: build_individual
         if: github.repository == 'Clouddark75/tachiyomi-unofficial-extensions'
         runs-on: ubuntu-latest
         steps:
@@ -197,7 +131,7 @@ jobs:
               uses: actions/download-artifact@v4
               with:
                   path: ~/apk-artifacts
-                  pattern: "*-apks-*"
+                  pattern: "individual-apks-*"
                   merge-multiple: true
 
             - name: Set up JDK
@@ -215,23 +149,46 @@ jobs:
             - name: Create repo artifacts
               run: |
                   cd repo
-                  chmod +x ../.github/scripts/move-apks.sh
-                  chmod +x ../.github/scripts/create-repo.sh
-                  ../.github/scripts/move-apks.sh
+                  
+                  # Check if scripts exist before running them
+                  if [ -f "../.github/scripts/move-apks.sh" ]; then
+                      chmod +x ../.github/scripts/move-apks.sh
+                      ../.github/scripts/move-apks.sh
+                  else
+                      echo "move-apks.sh script not found, copying APKs manually"
+                      mkdir -p apk
+                      find ~/apk-artifacts -name "*.apk" -exec cp {} apk/ \;
+                  fi
                   
                   # Download inspector with better error handling
                   INSPECTOR_LINK="$(curl -s "https://api.github.com/repos/tachiyomiorg/tachiyomi-extensions-inspector/releases/latest" | jq -r '.assets[0].browser_download_url')"
-                  if [ "$INSPECTOR_LINK" != "null" ]; then
+                  if [ "$INSPECTOR_LINK" != "null" ] && [ -n "$INSPECTOR_LINK" ]; then
+                      echo "Downloading Inspector from: $INSPECTOR_LINK"
                       curl -L "$INSPECTOR_LINK" -o ./Inspector.jar
                       java -jar ./Inspector.jar "apk" "output.json" "tmp"
                   else
-                      echo "Warning: Could not download Inspector"
+                      echo "Warning: Could not download Inspector, creating basic index"
+                      echo "[]" > output.json
                   fi
                   
-                  ../.github/scripts/create-repo.sh
+                  if [ -f "../.github/scripts/create-repo.sh" ]; then
+                      chmod +x ../.github/scripts/create-repo.sh
+                      ../.github/scripts/create-repo.sh
+                  else
+                      echo "create-repo.sh script not found"
+                  fi
 
             - name: Deploy repo
               run: |
                   cd repo
-                  chmod +x ../.github/scripts/commit-repo.sh
-                  ../.github/scripts/commit-repo.sh
+                  if [ -f "../.github/scripts/commit-repo.sh" ]; then
+                      chmod +x ../.github/scripts/commit-repo.sh
+                      ../.github/scripts/commit-repo.sh
+                  else
+                      echo "commit-repo.sh script not found, manual commit needed"
+                      git config --local user.email "action@github.com"
+                      git config --local user.name "GitHub Action"
+                      git add .
+                      git diff --staged --quiet || git commit -m "Update extensions repo"
+                      git push
+                  fi
