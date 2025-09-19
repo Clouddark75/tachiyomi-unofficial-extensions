@@ -1,9 +1,40 @@
+apply plugin: 'com.android.library'
+apply plugin: 'kotlin-android'
+apply plugin: 'kotlinx-serialization'
+
 ext {
-    extName = 'AnimeBBG'
-    extClass = '.AnimeBBG'
+    extName = 'WebDAV'
+    pkgNameSuffix = 'webdav'
+    extClass = '.WebDavFactory'
     extVersionCode = 1
-    baseUrl = 'https://animebbg.net'
-    isNsfw = false
+    libVersion = '13'
 }
 
-apply from: "$rootDir/common.gradle"
+dependencies {
+    compileOnly 'org.jetbrains.kotlin:kotlin-stdlib-jdk8'
+    compileOnly 'com.squareup.okhttp3:okhttp:4.12.0'
+    compileOnly 'org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0'
+    compileOnly 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3'
+    
+    implementation 'androidx.preference:preference:1.2.0'
+}
+
+android {
+    compileSdkVersion 34
+    
+    defaultConfig {
+        minSdkVersion 21
+        targetSdkVersion 34
+        versionCode extVersionCode
+        versionName "1.0.$extVersionCode"
+    }
+    
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+    
+    kotlinOptions {
+        jvmTarget = '1.8'
+    }
+}
