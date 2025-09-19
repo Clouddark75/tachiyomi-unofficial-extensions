@@ -21,6 +21,7 @@ dependencies {
 
 android {
     compileSdkVersion 34
+    namespace 'eu.kanade.tachiyomi.extension.all.webdav'
     
     defaultConfig {
         minSdkVersion 21
