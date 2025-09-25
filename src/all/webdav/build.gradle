@@ -1,6 +1,5 @@
 apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
-apply plugin: 'kotlinx-serialization'
 
 ext {
     extName = 'WebDAV'
@@ -8,6 +7,18 @@ ext {
     extClass = '.WebDavFactory'
     extVersionCode = 1
     libVersion = '13'
+}
+
+android {
+    compileSdkVersion 31
+    
+    defaultConfig {
+        applicationId "eu.kanade.tachiyomi.extension.all.webdav"
+        minSdkVersion 21
+        targetSdkVersion 31
+        versionCode extVersionCode
+        versionName "1.0"
+    }
 }
 
 dependencies {
