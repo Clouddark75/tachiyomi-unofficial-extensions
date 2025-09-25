@@ -4,7 +4,6 @@ apply plugin: 'kotlinx-serialization'
 
 ext {
     extName = 'WebDAV'
-    pkgNameSuffix = 'webdav'
     extClass = '.WebDavFactory'
     extVersionCode = 1
     libVersion = '13'
