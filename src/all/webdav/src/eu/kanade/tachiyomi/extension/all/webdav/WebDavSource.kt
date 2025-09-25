@@ -31,7 +31,7 @@ data class MangaInfo(
     val path: String,
     val url: String = path,
     val description: String? = null,
-    val thumbnailUrl: String? = null
+    val thumbnailUrl: String? = null,
 )
 
 data class ChapterInfo(
@@ -39,7 +39,7 @@ data class ChapterInfo(
     val path: String,
     val url: String = path,
     val dateUpload: Long = System.currentTimeMillis(),
-    val chapterNumber: Float = -1f
+    val chapterNumber: Float = -1f,
 )
 
 data class WebDavPage(val index: Int, val imageUrl: String)
@@ -47,7 +47,7 @@ data class WebDavPage(val index: Int, val imageUrl: String)
 class WebDavSource(
     private val baseUrl: String,
     private val username: String? = null,
-    private val password: String? = null
+    private val password: String? = null,
 ) : CatalogueSource {
 
     override val name: String = "WebDAV"
@@ -91,7 +91,7 @@ class WebDavSource(
                     title = entry.title,
                     path = entry.path,
                     url = entry.path,
-                    description = "WebDAV Manga: ${entry.title}"
+                    description = "WebDAV Manga: ${entry.title}",
                 )
             }
         } catch (e: Exception) {
@@ -133,7 +133,7 @@ class WebDavSource(
                             path = entry.path,
                             url = entry.path,
                             chapterNumber = chapterNumber,
-                            dateUpload = System.currentTimeMillis()
+                            dateUpload = System.currentTimeMillis(),
                         )
                     )
                 } else if (!isFile(entry.title)) {
@@ -145,7 +145,7 @@ class WebDavSource(
                             path = entry.path,
                             url = entry.path,
                             chapterNumber = chapterNumber,
-                            dateUpload = System.currentTimeMillis()
+                            dateUpload = System.currentTimeMillis(),
                         )
                     )
                 }
@@ -203,10 +203,12 @@ class WebDavSource(
     }
 
     private fun propfind(url: String, depth: Int = 1): String {
-        val reqBody = """<?xml version="1.0" encoding="utf-8"?>
+        val reqBody = """
+            <?xml version="1.0" encoding="utf-8"?>
             <D:propfind xmlns:D="DAV:">
                 <D:allprop/>
-            </D:propfind>""".trimIndent()
+            </D:propfind>
+        """.trimIndent()
 
         val requestBuilder = Request.Builder()
             .url(url)
@@ -358,7 +360,7 @@ class WebDavSource(
         val patterns = listOf(
             Regex("""(?:chapter|ch|cap|c)[\s_-]*(\d+(?:[.,]\d+)?)""", RegexOption.IGNORE_CASE),
             Regex("""(\d+(?:[.,]\d+)?)"""),
-            Regex("""vol\s*\d+\s*(?:chapter|ch|cap|c)[\s_-]*(\d+(?:[.,]\d+)?)""", RegexOption.IGNORE_CASE)
+            Regex("""vol\s*\d+\s*(?:chapter|ch|cap|c)[\s_-]*(\d+(?:[.,]\d+)?)""", RegexOption.IGNORE_CASE),
         )
 
         for (pattern in patterns) {
