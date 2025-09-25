@@ -1,11 +1,7 @@
-apply plugin: 'com.android.application'
-apply plugin: 'kotlin-android'
-
 ext {
     extName = 'WebDAV'
     extClass = '.WebDavFactory'
-    extVersionCode = 1
-    libVersion = '13'
+    extVersionCode = 1 
 }
 
 dependencies {
