@@ -42,7 +42,10 @@ data class ChapterInfo(
     val chapterNumber: Float = -1f,
 )
 
-data class WebDavPage(val index: Int, val imageUrl: String)
+data class WebDavPage(
+    val index: Int,
+    val imageUrl: String,
+)
 
 class WebDavSource(
     private val baseUrl: String,
@@ -60,17 +63,19 @@ class WebDavSource(
         .writeTimeout(30, TimeUnit.SECONDS)
         .apply {
             if (!username.isNullOrBlank() && !password.isNullOrBlank()) {
-                authenticator(object : Authenticator {
-                    override fun authenticate(route: Route?, response: Response): Request? {
-                        if (response.request.header("Authorization") != null) {
-                            return null // Ya intentamos autenticar
+                authenticator(
+                    object : Authenticator {
+                        override fun authenticate(route: Route?, response: Response): Request? {
+                            if (response.request.header("Authorization") != null) {
+                                return null // Ya intentamos autenticar
+                            }
+                            val credential = Credentials.basic(username, password)
+                            return response.request.newBuilder()
+                                .header("Authorization", credential)
+                                .build()
                         }
-                        val credential = Credentials.basic(username, password)
-                        return response.request.newBuilder()
-                            .header("Authorization", credential)
-                            .build()
-                    }
-                })
+                    },
+                )
             }
         }
         .build()
@@ -134,7 +139,7 @@ class WebDavSource(
                             url = entry.path,
                             chapterNumber = chapterNumber,
                             dateUpload = System.currentTimeMillis(),
-                        )
+                        ),
                     )
                 } else if (!isFile(entry.title)) {
                     // Directorio que podría contener imágenes
@@ -146,7 +151,7 @@ class WebDavSource(
                             url = entry.path,
                             chapterNumber = chapterNumber,
                             dateUpload = System.currentTimeMillis(),
-                        )
+                        ),
                     )
                 }
             }
@@ -204,10 +209,10 @@ class WebDavSource(
 
     private fun propfind(url: String, depth: Int = 1): String {
         val reqBody = """
-            <?xml version="1.0" encoding="utf-8"?>
-            <D:propfind xmlns:D="DAV:">
-                <D:allprop/>
-            </D:propfind>
+<?xml version="1.0" encoding="utf-8"?>
+<D:propfind xmlns:D="DAV:">
+    <D:allprop/>
+</D:propfind>
         """.trimIndent()
 
         val requestBuilder = Request.Builder()
