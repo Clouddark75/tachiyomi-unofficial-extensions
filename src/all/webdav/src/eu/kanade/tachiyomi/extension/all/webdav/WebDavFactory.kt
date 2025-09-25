@@ -5,7 +5,11 @@ import android.content.SharedPreferences
 import androidx.preference.EditTextPreference
 import androidx.preference.PreferenceScreen
 import eu.kanade.tachiyomi.source.ConfigurableSource
-import eu.kanade.tachiyomi.source.model.*
+import eu.kanade.tachiyomi.source.model.FilterList
+import eu.kanade.tachiyomi.source.model.MangasPage
+import eu.kanade.tachiyomi.source.model.Page
+import eu.kanade.tachiyomi.source.model.SChapter
+import eu.kanade.tachiyomi.source.model.SManga
 import eu.kanade.tachiyomi.source.online.HttpSource
 import okhttp3.Request
 import okhttp3.Response
@@ -32,7 +36,7 @@ class WebDavFactory : ConfigurableSource, HttpSource() {
         WebDavSource(
             baseUrl = preferences.getString(SERVER_URL_PREF, "") ?: "",
             username = preferences.getString(USERNAME_PREF, ""),
-            password = preferences.getString(PASSWORD_PREF, "")
+            password = preferences.getString(PASSWORD_PREF, ""),
         )
     }
 
@@ -142,7 +146,11 @@ class WebDavFactory : ConfigurableSource, HttpSource() {
                         name = chapterInfo.name
                         url = chapterInfo.path
                         date_upload = chapterInfo.dateUpload
-                        chapter_number = if (chapterInfo.chapterNumber > 0) chapterInfo.chapterNumber else (chapters.size - index).toFloat()
+                        chapter_number = if (chapterInfo.chapterNumber > 0) {
+                            chapterInfo.chapterNumber
+                        } else {
+                            (chapters.size - index).toFloat()
+                        }
                     }
                 }.reversed() // Mostrar capítulos más recientes primero
             } catch (e: Exception) {
@@ -204,7 +212,8 @@ class WebDavFactory : ConfigurableSource, HttpSource() {
             dialogTitle = title
 
             setOnBindEditTextListener { editText ->
-                editText.inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
+                editText.inputType = android.text.InputType.TYPE_CLASS_TEXT or
+                    android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
             }
         }
 
