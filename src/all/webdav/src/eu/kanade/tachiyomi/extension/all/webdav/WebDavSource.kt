@@ -2,7 +2,6 @@ package eu.kanade.tachiyomi.extension.all.webdav
 
 import okhttp3.Authenticator
 import okhttp3.Credentials
-import okhttp3.MediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody
