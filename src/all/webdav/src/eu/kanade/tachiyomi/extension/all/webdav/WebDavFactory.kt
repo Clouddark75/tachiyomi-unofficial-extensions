@@ -184,10 +184,10 @@ class WebDavFactory : ConfigurableSource, HttpSource() {
             title = "Server URL"
             summary = "WebDAV server URL (e.g., https://example.com/webdav/)"
             setDefaultValue("")
-            dialogTitle = title
+            dialogTitle = title.toString()
 
             setOnPreferenceChangeListener { _, newValue ->
-                val url = newValue as String
+                val url = newValue.toString()
                 url.isNotBlank() && (url.startsWith("http://") || url.startsWith("https://"))
             }
         }
@@ -197,7 +197,7 @@ class WebDavFactory : ConfigurableSource, HttpSource() {
             title = "Username"
             summary = "Username for WebDAV authentication (leave empty if not needed)"
             setDefaultValue("")
-            dialogTitle = title
+            dialogTitle = title.toString()
         }
 
         val passwordPref = EditTextPreference(screen.context).apply {
@@ -205,7 +205,7 @@ class WebDavFactory : ConfigurableSource, HttpSource() {
             title = "Password"
             summary = "Password for WebDAV authentication (leave empty if not needed)"
             setDefaultValue("")
-            dialogTitle = title
+            dialogTitle = title.toString()
 
             setOnBindEditTextListener { editText ->
                 editText.inputType = android.text.InputType.TYPE_CLASS_TEXT or
