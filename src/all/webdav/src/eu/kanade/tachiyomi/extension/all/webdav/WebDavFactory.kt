@@ -57,7 +57,7 @@ class WebDavFactory : ConfigurableSource, HttpSource() {
         if (baseUrl.isEmpty()) {
             return Observable.error(Exception("Server URL not configured. Please configure in settings."))
         }
-        
+
         return Observable.fromCallable {
             try {
                 val mangaList = webDavSource.fetchMangaList()
@@ -82,7 +82,7 @@ class WebDavFactory : ConfigurableSource, HttpSource() {
         if (baseUrl.isEmpty()) {
             return Observable.error(Exception("Server URL not configured. Please configure in settings."))
         }
-        
+
         return Observable.fromCallable {
             try {
                 val mangaList = webDavSource.fetchMangaList()
@@ -91,7 +91,7 @@ class WebDavFactory : ConfigurableSource, HttpSource() {
                 } else {
                     mangaList
                 }
-                
+
                 val sMangaList = filteredList.map { mangaInfo ->
                     SManga.create().apply {
                         title = mangaInfo.title
@@ -115,7 +115,7 @@ class WebDavFactory : ConfigurableSource, HttpSource() {
                 // Intentar obtener más detalles del manga si es posible
                 val mangaInfo = MangaInfo(manga.title, manga.url)
                 val chapters = webDavSource.fetchChapters(mangaInfo)
-                
+
                 manga.apply {
                     status = SManga.UNKNOWN
                     description = description ?: "Chapters found: ${chapters.size}"
@@ -136,7 +136,7 @@ class WebDavFactory : ConfigurableSource, HttpSource() {
             try {
                 val mangaInfo = MangaInfo(manga.title, manga.url)
                 val chapters = webDavSource.fetchChapters(mangaInfo)
-                
+
                 chapters.mapIndexed { index, chapterInfo ->
                     SChapter.create().apply {
                         name = chapterInfo.name
@@ -158,7 +158,7 @@ class WebDavFactory : ConfigurableSource, HttpSource() {
                 val mangaInfo = MangaInfo("", "") // Placeholder, WebDavSource no lo necesita realmente
                 val chapterInfo = ChapterInfo(chapter.name, chapter.url)
                 val pages = webDavSource.fetchPageList(mangaInfo, chapterInfo)
-                
+
                 pages.map { page ->
                     Page(page.index, page.imageUrl)
                 }
@@ -181,13 +181,13 @@ class WebDavFactory : ConfigurableSource, HttpSource() {
             summary = "WebDAV server URL (e.g., https://example.com/webdav/)"
             setDefaultValue("")
             dialogTitle = title
-            
+
             setOnPreferenceChangeListener { _, newValue ->
                 val url = newValue as String
                 url.isNotBlank() && (url.startsWith("http://") || url.startsWith("https://"))
             }
         }
-        
+
         val usernamePref = EditTextPreference(screen.context).apply {
             key = USERNAME_PREF
             title = "Username"
@@ -195,19 +195,19 @@ class WebDavFactory : ConfigurableSource, HttpSource() {
             setDefaultValue("")
             dialogTitle = title
         }
-        
+
         val passwordPref = EditTextPreference(screen.context).apply {
             key = PASSWORD_PREF
             title = "Password"
             summary = "Password for WebDAV authentication (leave empty if not needed)"
             setDefaultValue("")
             dialogTitle = title
-            
+
             setOnBindEditTextListener { editText ->
                 editText.inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
             }
         }
-        
+
         screen.addPreference(serverUrlPref)
         screen.addPreference(usernamePref)
         screen.addPreference(passwordPref)
@@ -215,7 +215,7 @@ class WebDavFactory : ConfigurableSource, HttpSource() {
 
     companion object {
         private const val SERVER_URL_PREF = "server_url"
-        private const val USERNAME_PREF = "username" 
+        private const val USERNAME_PREF = "username"
         private const val PASSWORD_PREF = "password"
     }
 }
