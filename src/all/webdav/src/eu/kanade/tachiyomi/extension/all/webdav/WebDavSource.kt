@@ -1,14 +1,20 @@
 package eu.kanade.tachiyomi.extension.all.webdav
 
-import okhttp3.*
+import okhttp3.Authenticator
+import okhttp3.Credentials
+import okhttp3.MediaType
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody
+import okhttp3.Response
+import okhttp3.Route
 import org.xmlpull.v1.XmlPullParser
 import org.xmlpull.v1.XmlPullParserFactory
 import java.io.StringReader
-import java.net.URLEncoder
 import java.net.URLDecoder
-import java.text.SimpleDateFormat
-import java.util.*
+import java.net.URLEncoder
 import java.util.concurrent.TimeUnit
+import kotlin.math.min
 
 interface CatalogueSource {
     val name: String
@@ -16,12 +22,12 @@ interface CatalogueSource {
     val lang: String
     fun fetchMangaList(): List<MangaInfo>
     fun fetchChapters(manga: MangaInfo): List<ChapterInfo>
-    fun fetchPageList(manga: MangaInfo, chapter: ChapterInfo): List<Page>
-    fun fetchImageUrl(page: Page): String
+    fun fetchPageList(manga: MangaInfo, chapter: ChapterInfo): List<WebDavPage>
+    fun fetchImageUrl(page: WebDavPage): String
 }
 
 data class MangaInfo(
-    val title: String, 
+    val title: String,
     val path: String,
     val url: String = path,
     val description: String? = null,
@@ -29,14 +35,14 @@ data class MangaInfo(
 )
 
 data class ChapterInfo(
-    val name: String, 
+    val name: String,
     val path: String,
     val url: String = path,
     val dateUpload: Long = System.currentTimeMillis(),
     val chapterNumber: Float = -1f
 )
 
-data class Page(val index: Int, val imageUrl: String)
+data class WebDavPage(val index: Int, val imageUrl: String)
 
 class WebDavSource(
     private val baseUrl: String,
@@ -49,122 +55,173 @@ class WebDavSource(
     override val lang: String = "all"
 
     private val client: OkHttpClient = OkHttpClient.Builder()
-            .connectTimeout(30, TimeUnit.SECONDS)
-            .readTimeout(60, TimeUnit.SECONDS)
-            .authenticator(object : Authenticator {
-                override fun authenticate(route: Route?, response: Response): Request? {
-                    if (username == null || password == null) return null
-                    val credential = Credentials.basic(username, password)
-                    return response.request.newBuilder()
+        .connectTimeout(30, TimeUnit.SECONDS)
+        .readTimeout(60, TimeUnit.SECONDS)
+        .writeTimeout(30, TimeUnit.SECONDS)
+        .apply {
+            if (!username.isNullOrBlank() && !password.isNullOrBlank()) {
+                authenticator(object : Authenticator {
+                    override fun authenticate(route: Route?, response: Response): Request? {
+                        if (response.request.header("Authorization") != null) {
+                            return null // Ya intentamos autenticar
+                        }
+                        val credential = Credentials.basic(username, password)
+                        return response.request.newBuilder()
                             .header("Authorization", credential)
                             .build()
-                }
-            })
-            .build()
+                    }
+                })
+            }
+        }
+        .build()
 
     override fun fetchMangaList(): List<MangaInfo> {
+        if (baseUrl.isBlank()) {
+            throw Exception("Server URL is not configured")
+        }
+
         return try {
             val xml = propfind(baseUrl)
-            parsePropfindList(xml, baseUrl)
-                    .filter { !isFile(it.title) } // Solo directorios como manga
-                    .map { entry ->
-                        MangaInfo(
-                            title = entry.title,
-                            path = entry.path,
-                            url = entry.path
-                        )
-                    }
+            val entries = parsePropfindList(xml, baseUrl)
+
+            entries.filter { entry ->
+                !isFile(entry.title) && entry.path != "." // Solo directorios como manga
+            }.map { entry ->
+                MangaInfo(
+                    title = entry.title,
+                    path = entry.path,
+                    url = entry.path,
+                    description = "WebDAV Manga: ${entry.title}"
+                )
+            }
         } catch (e: Exception) {
-            println("Error fetching manga list: ${e.message}")
-            emptyList()
+            throw Exception("Error fetching manga list: ${e.message}")
         }
     }
 
     override fun fetchChapters(manga: MangaInfo): List<ChapterInfo> {
         return try {
-            val url = joinUrl(baseUrl, manga.path)
+            val url = if (manga.path.startsWith("http")) {
+                manga.path
+            } else {
+                joinUrl(baseUrl, manga.path)
+            }
+
             val xml = propfind(url)
             val entries = parsePropfindList(xml, url)
 
             val chapters = mutableListOf<ChapterInfo>()
 
-            for (entry in entries.sortedBy { it.title }) {
+            for (entry in entries) {
+                if (entry.path == ".") continue // Saltar directorio actual
+
                 if (isArchive(entry.title)) {
+                    // Archivo comprimido (CBZ, ZIP, etc.)
                     val name = entry.title
-                            .removeSuffix(".cbz")
-                            .removeSuffix(".zip")
-                            .removeSuffix(".cbr")
-                            .removeSuffix(".rar")
-                    
+                        .removeSuffix(".cbz")
+                        .removeSuffix(".zip")
+                        .removeSuffix(".cbr")
+                        .removeSuffix(".rar")
+                        .removeSuffix(".cb7")
+                        .removeSuffix(".7z")
+
                     val chapterNumber = extractChapterNumber(name)
-                    
-                    chapters.add(ChapterInfo(
-                        name = name,
-                        path = entry.path,
-                        url = entry.path,
-                        chapterNumber = chapterNumber
-                    ))
+
+                    chapters.add(
+                        ChapterInfo(
+                            name = name,
+                            path = entry.path,
+                            url = entry.path,
+                            chapterNumber = chapterNumber,
+                            dateUpload = System.currentTimeMillis()
+                        )
+                    )
                 } else if (!isFile(entry.title)) {
-                    // Es un directorio, podría contener imágenes
+                    // Directorio que podría contener imágenes
                     val chapterNumber = extractChapterNumber(entry.title)
-                    chapters.add(ChapterInfo(
-                        name = entry.title,
-                        path = entry.path,
-                        url = entry.path,
-                        chapterNumber = chapterNumber
-                    ))
+                    chapters.add(
+                        ChapterInfo(
+                            name = entry.title,
+                            path = entry.path,
+                            url = entry.path,
+                            chapterNumber = chapterNumber,
+                            dateUpload = System.currentTimeMillis()
+                        )
+                    )
                 }
             }
-            
-            // Ordenar por número de capítulo
-            chapters.sortedBy { it.chapterNumber }
+
+            // Ordenar por número de capítulo (ascendente)
+            chapters.sortedBy { chapter ->
+                if (chapter.chapterNumber > 0) chapter.chapterNumber else Float.MAX_VALUE
+            }
         } catch (e: Exception) {
-            println("Error fetching chapters for ${manga.title}: ${e.message}")
-            emptyList()
+            throw Exception("Error fetching chapters for ${manga.title}: ${e.message}")
         }
     }
 
-    override fun fetchPageList(manga: MangaInfo, chapter: ChapterInfo): List<Page> {
+    override fun fetchPageList(manga: MangaInfo, chapter: ChapterInfo): List<WebDavPage> {
         return try {
-            val url = joinUrl(baseUrl, chapter.path)
+            val url = if (chapter.path.startsWith("http")) {
+                chapter.path
+            } else {
+                joinUrl(baseUrl, chapter.path)
+            }
 
-            if (isArchive(chapter.path)) {
-                // Para archivos, devolver el archivo como página única
-                listOf(Page(1, url))
+            if (isArchive(chapter.path) || isArchive(url)) {
+                // Para archivos comprimidos, devolver el archivo como página única
+                // Tachiyomi puede manejar CBZ/ZIP internamente
+                listOf(WebDavPage(0, url))
             } else {
                 // Para directorios, buscar imágenes
                 val xml = propfind(url)
                 val entries = parsePropfindList(xml, url)
                 val images = entries
-                        .filter { isImage(it.title) }
-                        .sortedWith(naturalOrderComparator())
-                
-                images.mapIndexed { idx, entry -> 
-                    Page(idx + 1, joinUrl(baseUrl, entry.path))
+                    .filter { isImage(it.title) && it.path != "." }
+                    .sortedWith(naturalOrderComparator())
+
+                if (images.isEmpty()) {
+                    throw Exception("No images found in chapter: ${chapter.name}")
+                }
+
+                images.mapIndexed { idx, entry ->
+                    val imageUrl = if (entry.path.startsWith("http")) {
+                        entry.path
+                    } else {
+                        joinUrl(baseUrl, entry.path)
+                    }
+                    WebDavPage(idx, imageUrl)
                 }
             }
         } catch (e: Exception) {
-            println("Error fetching pages for ${chapter.name}: ${e.message}")
-            emptyList()
+            throw Exception("Error fetching pages for ${chapter.name}: ${e.message}")
         }
     }
 
-    override fun fetchImageUrl(page: Page): String {
+    override fun fetchImageUrl(page: WebDavPage): String {
         return page.imageUrl
     }
 
     private fun propfind(url: String, depth: Int = 1): String {
-        val reqBody = """<?xml version="1.0"?>
-            <propfind xmlns="DAV:">
-                <allprop/>
-            </propfind>""".trimIndent()
-            
-        val request = Request.Builder()
-                .url(url)
-                .method("PROPFIND", RequestBody.create(MediaType.parse("application/xml"), reqBody))
-                .header("Depth", depth.toString())
-                .header("Content-Type", "application/xml")
-                .build()
+        val reqBody = """<?xml version="1.0" encoding="utf-8"?>
+            <D:propfind xmlns:D="DAV:">
+                <D:allprop/>
+            </D:propfind>""".trimIndent()
+
+        val requestBuilder = Request.Builder()
+            .url(url)
+            .method("PROPFIND", RequestBody.create(MediaType.parse("application/xml; charset=utf-8"), reqBody))
+            .header("Depth", depth.toString())
+            .header("Content-Type", "application/xml; charset=utf-8")
+            .header("User-Agent", "Tachiyomi WebDAV Extension")
+
+        // Agregar autenticación si está disponible
+        if (!username.isNullOrBlank() && !password.isNullOrBlank()) {
+            val credential = Credentials.basic(username, password)
+            requestBuilder.header("Authorization", credential)
+        }
+
+        val request = requestBuilder.build()
 
         client.newCall(request).execute().use { response ->
             if (!response.isSuccessful) {
@@ -174,7 +231,8 @@ class WebDavSource(
         }
     }
 
-    private fun parsePropfindList(xml: String, base: String): List<MangaInfo> {
+    @Suppress("LongMethod", "ComplexMethod")
+    private fun parsePropfindList(xml: String, baseUrl: String): List<MangaInfo> {
         val list = mutableListOf<MangaInfo>()
         if (xml.isBlank()) return list
 
@@ -188,35 +246,52 @@ class WebDavSource(
             var inHref = false
             var currentHref: String? = null
             var currentDisplayName: String? = null
+            var inDisplayName = false
 
             while (event != XmlPullParser.END_DOCUMENT) {
                 when (event) {
                     XmlPullParser.START_TAG -> {
                         val name = parser.name?.lowercase()
                         when (name) {
-                            "href" -> inHref = true
+                            "href" -> {
+                                inHref = true
+                                currentHref = null
+                            }
                             "displayname" -> {
-                                if (parser.next() == XmlPullParser.TEXT) {
-                                    currentDisplayName = parser.text
-                                }
+                                inDisplayName = true
+                                currentDisplayName = null
                             }
                         }
                     }
                     XmlPullParser.TEXT -> {
                         if (inHref && parser.text.isNotBlank()) {
-                            currentHref = URLDecoder.decode(parser.text, "UTF-8")
+                            currentHref = try {
+                                URLDecoder.decode(parser.text.trim(), "UTF-8")
+                            } catch (e: Exception) {
+                                parser.text.trim()
+                            }
+                        } else if (inDisplayName && parser.text.isNotBlank()) {
+                            currentDisplayName = parser.text.trim()
                         }
                     }
                     XmlPullParser.END_TAG -> {
                         val name = parser.name?.lowercase()
                         when (name) {
                             "href" -> inHref = false
+                            "displayname" -> inDisplayName = false
                             "response" -> {
-                                if (currentHref != null && !currentHref!!.endsWith(base.trimEnd('/'))) {
-                                    val rel = toRelativePath(base, currentHref!!)
-                                    val title = currentDisplayName ?: lastSegment(rel)
-                                    if (rel.isNotEmpty() && rel != ".") {
-                                        list.add(MangaInfo(title, rel))
+                                if (currentHref != null) {
+                                    val normalizedBaseUrl = baseUrl.trimEnd('/')
+                                    val normalizedHref = currentHref!!.trimEnd('/')
+
+                                    // Evitar incluir el directorio base mismo
+                                    if (!normalizedHref.equals(normalizedBaseUrl, ignoreCase = true)) {
+                                        val relativePath = toRelativePath(normalizedBaseUrl, normalizedHref)
+                                        val title = currentDisplayName ?: lastSegment(relativePath)
+
+                                        if (relativePath.isNotEmpty() && relativePath != "." && title.isNotEmpty()) {
+                                            list.add(MangaInfo(title, relativePath))
+                                        }
                                     }
                                 }
                                 currentHref = null
@@ -228,7 +303,7 @@ class WebDavSource(
                 event = parser.next()
             }
         } catch (e: Exception) {
-            println("Error parsing XML: ${e.message}")
+            throw Exception("Error parsing WebDAV response: ${e.message}")
         }
 
         return list.distinctBy { it.path }
@@ -238,7 +313,7 @@ class WebDavSource(
         return try {
             val normalizedBase = base.trimEnd('/')
             val normalizedHref = href.trimEnd('/')
-            
+
             if (normalizedHref.startsWith(normalizedBase)) {
                 val relative = normalizedHref.substring(normalizedBase.length).trimStart('/')
                 if (relative.isEmpty()) "." else relative
@@ -256,6 +331,8 @@ class WebDavSource(
 
     private fun joinUrl(base: String, path: String): String {
         if (path == "." || path.isEmpty()) return base
+        if (path.startsWith("http://") || path.startsWith("https://")) return path
+
         val encodedPath = path.split('/').joinToString("/") { segment ->
             URLEncoder.encode(segment, "UTF-8").replace("+", "%20")
         }
@@ -263,7 +340,7 @@ class WebDavSource(
     }
 
     private fun isImage(name: String): Boolean {
-        val extensions = setOf("jpg", "jpeg", "png", "webp", "gif", "bmp", "tiff", "avif")
+        val extensions = setOf("jpg", "jpeg", "png", "webp", "gif", "bmp", "tiff", "avif", "svg")
         return extensions.any { name.lowercase().endsWith(".$it") }
     }
 
@@ -279,14 +356,16 @@ class WebDavSource(
     private fun extractChapterNumber(name: String): Float {
         // Buscar patrones comunes de numeración de capítulos
         val patterns = listOf(
-            Regex("""(?:chapter|ch|cap)[\s_-]*(\d+(?:\.\d+)?)""", RegexOption.IGNORE_CASE),
-            Regex("""(\d+(?:\.\d+)?)""")
+            Regex("""(?:chapter|ch|cap|c)[\s_-]*(\d+(?:[.,]\d+)?)""", RegexOption.IGNORE_CASE),
+            Regex("""(\d+(?:[.,]\d+)?)"""),
+            Regex("""vol\s*\d+\s*(?:chapter|ch|cap|c)[\s_-]*(\d+(?:[.,]\d+)?)""", RegexOption.IGNORE_CASE)
         )
-        
+
         for (pattern in patterns) {
             val match = pattern.find(name)
             if (match != null) {
-                return match.groupValues[1].toFloatOrNull() ?: -1f
+                val numberStr = match.groupValues[1].replace(',', '.')
+                return numberStr.toFloatOrNull() ?: -1f
             }
         }
         return -1f
@@ -295,15 +374,19 @@ class WebDavSource(
     private fun naturalOrderComparator(): Comparator<MangaInfo> {
         return Comparator { a, b ->
             val regex = Regex("""(\d+)""")
-            val aNumbers = regex.findAll(a.title).map { it.value.toInt() }.toList()
-            val bNumbers = regex.findAll(b.title).map { it.value.toInt() }.toList()
-            
-            for (i in 0 until minOf(aNumbers.size, bNumbers.size)) {
+            val aNumbers = regex.findAll(a.title).map { it.value.toIntOrNull() ?: 0 }.toList()
+            val bNumbers = regex.findAll(b.title).map { it.value.toIntOrNull() ?: 0 }.toList()
+
+            for (i in 0 until min(aNumbers.size, bNumbers.size)) {
                 val comparison = aNumbers[i].compareTo(bNumbers[i])
                 if (comparison != 0) return@Comparator comparison
             }
-            
-            a.title.compareTo(b.title, ignoreCase = true)
+
+            when {
+                aNumbers.size > bNumbers.size -> 1
+                aNumbers.size < bNumbers.size -> -1
+                else -> a.title.compareTo(b.title, ignoreCase = true)
+            }
         }
     }
 }
