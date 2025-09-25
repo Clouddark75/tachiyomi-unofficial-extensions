@@ -217,7 +217,7 @@ class WebDavSource(
 
         val requestBuilder = Request.Builder()
             .url(url)
-            .method("PROPFIND", RequestBody.create(MediaType.parse("application/xml; charset=utf-8"), reqBody))
+            .method("PROPFIND", RequestBody.create("application/xml; charset=utf-8".toMediaTypeOrNull(), reqBody))
             .header("Depth", depth.toString())
             .header("Content-Type", "application/xml; charset=utf-8")
             .header("User-Agent", "Tachiyomi WebDAV Extension")
