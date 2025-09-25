@@ -1,6 +1,6 @@
 package eu.kanade.tachiyomi.extension.all.webdav
 
-import android.content.Context
+import android.app.Application
 import android.content.SharedPreferences
 import androidx.preference.EditTextPreference
 import androidx.preference.PreferenceScreen
@@ -14,6 +14,8 @@ import eu.kanade.tachiyomi.source.online.HttpSource
 import okhttp3.Request
 import okhttp3.Response
 import rx.Observable
+import uy.kohesive.injekt.Injekt
+import uy.kohesive.injekt.api.get
 
 class WebDavFactory : ConfigurableSource, HttpSource() {
 
@@ -23,20 +25,14 @@ class WebDavFactory : ConfigurableSource, HttpSource() {
     override val supportsLatest = false
 
     private val preferences: SharedPreferences by lazy {
-        context.getSharedPreferences("source_$id", 0x0000)
-    }
-
-    private lateinit var context: Context
-
-    fun initialize(context: Context) {
-        this.context = context
+        Injekt.get<Application>().getSharedPreferences("source_$id", 0x0000)
     }
 
     private val webDavSource: WebDavSource by lazy {
         WebDavSource(
             baseUrl = preferences.getString(SERVER_URL_PREF, "") ?: "",
-            username = preferences.getString(USERNAME_PREF, ""),
-            password = preferences.getString(PASSWORD_PREF, ""),
+            username = preferences.getString(USERNAME_PREF, "") ?: "",
+            password = preferences.getString(PASSWORD_PREF, "") ?: "",
         )
     }
 
@@ -191,7 +187,7 @@ class WebDavFactory : ConfigurableSource, HttpSource() {
             dialogTitle = title
 
             setOnPreferenceChangeListener { _, newValue ->
-                val url = newValue as String
+                val url = newValue as? String ?: ""
                 url.isNotBlank() && (url.startsWith("http://") || url.startsWith("https://"))
             }
         }
