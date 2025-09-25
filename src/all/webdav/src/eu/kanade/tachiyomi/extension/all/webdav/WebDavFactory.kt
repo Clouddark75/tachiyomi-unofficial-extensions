@@ -187,7 +187,7 @@ class WebDavFactory : ConfigurableSource, HttpSource() {
             dialogTitle = title
 
             setOnPreferenceChangeListener { _, newValue ->
-                val url = newValue as? String ?: ""
+                val url = newValue as String
                 url.isNotBlank() && (url.startsWith("http://") || url.startsWith("https://"))
             }
         }
