@@ -3,7 +3,6 @@ apply plugin: 'kotlin-android'
 
 ext {
     extName = 'WebDAV'
-    pkgNameSuffix = 'webdav'
     extClass = '.WebDavFactory'
     extVersionCode = 1
     libVersion = '13'
