@@ -31,6 +31,11 @@ jobs:
         env:
             CI_MODULE_GEN: true
         steps:
+            - name: Force IPv4 (disable IPv6 precedence)
+              run: |
+                  sudo bash -c "echo 'precedence ::ffff:0:0/96  100' >> /etc/gai.conf"
+                  git config --global url."https://github.com/".insteadOf "git://github.com/"
+
             - name: Clone repo
               uses: actions/checkout@v4
               with:
