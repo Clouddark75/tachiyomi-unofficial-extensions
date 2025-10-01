@@ -174,8 +174,10 @@ class WebDavFactory : ConfigurableSource, HttpSource() {
 
     override fun fetchImageUrl(page: Page): Observable<String> {
         return Observable.fromCallable {
-            webDavSource.fetchImageUrl(WebDavPage(page.index, page.imageUrl))
-        }
+            val imageUrl = page.imageUrl ?: throw Exception("Image URL is null")
+            webDavSource.fetchImageUrl(WebDavPage(page.index, imageUrl))
+    }
+}
     }
 
     override fun setupPreferenceScreen(screen: PreferenceScreen) {
