@@ -176,8 +176,7 @@ class WebDavFactory : ConfigurableSource, HttpSource() {
         return Observable.fromCallable {
             val imageUrl = page.imageUrl ?: throw Exception("Image URL is null")
             webDavSource.fetchImageUrl(WebDavPage(page.index, imageUrl))
-    }
-}
+        }
     }
 
     override fun setupPreferenceScreen(screen: PreferenceScreen) {
@@ -189,9 +188,8 @@ class WebDavFactory : ConfigurableSource, HttpSource() {
             dialogTitle = "Server URL"
 
             setOnPreferenceChangeListener { _, newValue ->
-                val url = newValue as? String ?: ""
-                val isValid = url.isNotBlank() && (url.startsWith("http://") || url.startsWith("https://"))
-                isValid
+                val url = newValue.toString()
+                url.isNotBlank() && (url.startsWith("http://") || url.startsWith("https://"))
             }
         }
 
