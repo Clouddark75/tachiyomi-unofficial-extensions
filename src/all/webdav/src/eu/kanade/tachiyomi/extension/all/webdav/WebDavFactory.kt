@@ -188,7 +188,8 @@ class WebDavFactory : ConfigurableSource, HttpSource() {
 
             setOnPreferenceChangeListener { _, newValue ->
                 val url = newValue as? String ?: ""
-                url.isNotBlank() && (url.startsWith("http://") || url.startsWith("https://"))
+                val isValid = url.isNotBlank() && (url.startsWith("http://") || url.startsWith("https://"))
+                isValid
             }
         }
 
