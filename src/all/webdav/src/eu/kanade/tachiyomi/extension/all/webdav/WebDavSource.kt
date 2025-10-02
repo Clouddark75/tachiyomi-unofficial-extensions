@@ -12,7 +12,6 @@ import org.xmlpull.v1.XmlPullParser
 import org.xmlpull.v1.XmlPullParserFactory
 import java.io.StringReader
 import java.net.URLDecoder
-import java.net.URLEncoder
 import java.util.concurrent.TimeUnit
 import kotlin.math.min
 
