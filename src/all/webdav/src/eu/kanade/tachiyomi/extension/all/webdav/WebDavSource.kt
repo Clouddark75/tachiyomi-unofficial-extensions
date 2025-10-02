@@ -320,7 +320,7 @@ class WebDavSource(
             if (href.startsWith("http://") || href.startsWith("https://")) {
                 return href
             }
-            
+
             // Si el href es absoluto (empieza con /), construir desde el dominio
             if (href.startsWith("/")) {
                 val uri = URI(baseUrl)
