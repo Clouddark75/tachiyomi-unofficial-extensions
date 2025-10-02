@@ -58,9 +58,9 @@ class WebDavSource(
     override val lang: String = "all"
 
     private val client: OkHttpClient = OkHttpClient.Builder()
-        .connectTimeout(5, TimeUnit.SECONDS)
-        .readTimeout(10, TimeUnit.SECONDS)
-        .writeTimeout(5, TimeUnit.SECONDS)
+        .connectTimeout(30, TimeUnit.SECONDS)
+        .readTimeout(60, TimeUnit.SECONDS)
+        .writeTimeout(30, TimeUnit.SECONDS)
         .apply {
             if (!username.isNullOrBlank() && !password.isNullOrBlank()) {
                 authenticator(
@@ -86,86 +86,21 @@ class WebDavSource(
         }
 
         return try {
-            // Buscar recursivamente todos los manga en el servidor
-            findAllManga(baseUrl, maxDepth = 3)
+            val xml = propfind(baseUrl)
+            val entries = parsePropfindList(xml, baseUrl)
+
+            entries.filter { entry ->
+                !isFile(entry.title) && entry.path != "." // Solo directorios como manga
+            }.map { entry ->
+                MangaInfo(
+                    title = entry.title,
+                    path = entry.path,
+                    url = entry.path,
+                    description = "WebDAV Manga: ${entry.title}",
+                )
+            }
         } catch (e: Exception) {
             throw Exception("Error fetching manga list: ${e.message}")
-        }
-    }
-
-    private fun findAllManga(url: String, currentDepth: Int = 0, maxDepth: Int = 3): List<MangaInfo> {
-        if (currentDepth > maxDepth) return emptyList()
-
-        val mangaList = mutableListOf<MangaInfo>()
-
-        try {
-            val xml = propfind(url)
-            val entries = parsePropfindList(xml, url)
-            val directories = entries.filter { !isFile(it.title) && it.path != "." }
-
-            for (entry in directories) {
-                val dirUrl = if (entry.path.startsWith("http")) {
-                    entry.path
-                } else {
-                    joinUrl(baseUrl, entry.path)
-                }
-
-                // Verificar si este directorio contiene capítulos DIRECTAMENTE
-                val directChapters = hasDirectChapters(dirUrl)
-
-                if (directChapters) {
-                    // Este es un manga
-                    mangaList.add(
-                        MangaInfo(
-                            title = entry.title,
-                            path = entry.path,
-                            url = entry.path,
-                            description = "WebDAV Manga: ${entry.title}",
-                        ),
-                    )
-                } else {
-                    // No tiene capítulos directos, buscar recursivamente en subdirectorios
-                    mangaList.addAll(findAllManga(dirUrl, currentDepth + 1, maxDepth))
-                }
-            }
-        } catch (e: Exception) {
-            // Ignorar errores en directorios individuales y continuar
-        }
-
-        return mangaList
-    }
-
-    private fun hasDirectChapters(url: String): Boolean {
-        return try {
-            val xml = propfind(url)
-            val entries = parsePropfindList(xml, url)
-
-            // Tiene capítulos directos si contiene archivos comprimidos
-            val hasArchives = entries.any { isArchive(it.title) }
-            if (hasArchives) return true
-
-            // O si contiene subdirectorios que tienen imágenes
-            val directories = entries.filter { !isFile(it.title) && it.path != "." }
-            if (directories.isEmpty()) return false
-
-            // Verificar SOLO el primer subdirectorio para evitar búsquedas profundas
-            val firstDir = directories.firstOrNull() ?: return false
-            val dirUrl = if (firstDir.path.startsWith("http")) {
-                firstDir.path
-            } else {
-                joinUrl(baseUrl, firstDir.path)
-            }
-
-            try {
-                val dirXml = propfind(dirUrl)
-                val dirEntries = parsePropfindList(dirXml, dirUrl)
-                // Si tiene imágenes directamente, entonces este nivel es de capítulos
-                dirEntries.any { isImage(it.title) }
-            } catch (e: Exception) {
-                false
-            }
-        } catch (e: Exception) {
-            false
         }
     }
 
@@ -405,10 +340,10 @@ class WebDavSource(
         if (path == "." || path.isEmpty()) return base
         if (path.startsWith("http://") || path.startsWith("https://")) return path
 
-        val encodedPath = path.split('/').joinToString("/") { segment ->
-            URLEncoder.encode(segment, "UTF-8").replace("+", "%20")
-        }
-        return base.trimEnd('/') + "/" + encodedPath
+        // NO codificar el path - el servidor WebDAV ya lo maneja correctamente
+        // Solo asegurar que la URL esté bien formada
+        val normalizedPath = path.trimStart('/')
+        return base.trimEnd('/') + "/" + normalizedPath
     }
 
     private fun isImage(name: String): Boolean {
