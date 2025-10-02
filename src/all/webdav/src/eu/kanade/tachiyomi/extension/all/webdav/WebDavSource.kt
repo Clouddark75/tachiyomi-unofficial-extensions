@@ -97,7 +97,7 @@ class WebDavSource(
         if (currentDepth > maxDepth) return emptyList()
 
         val mangaList = mutableListOf<MangaInfo>()
-        
+
         try {
             val xml = propfind(url)
             val entries = parsePropfindList(xml, url)
@@ -137,12 +137,12 @@ class WebDavSource(
         return try {
             val xml = propfind(url)
             val entries = parsePropfindList(xml, url)
-            
+
             // Un directorio tiene capítulos si contiene:
             // 1. Archivos comprimidos (CBZ, ZIP, etc.)
             // 2. Subdirectorios que contienen imágenes
             val hasArchives = entries.any { isArchive(it.title) }
-            
+
             if (hasArchives) return true
 
             // Verificar si hay subdirectorios con imágenes
@@ -153,7 +153,7 @@ class WebDavSource(
                 } else {
                     joinUrl(baseUrl, dir.path)
                 }
-                
+
                 try {
                     val dirXml = propfind(dirUrl)
                     val dirEntries = parsePropfindList(dirXml, dirUrl)
