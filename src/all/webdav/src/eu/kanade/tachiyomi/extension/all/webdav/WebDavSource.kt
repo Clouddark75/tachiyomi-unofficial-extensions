@@ -274,14 +274,14 @@ class WebDavSource(
                                     try {
                                         // NO decodificar - mantener el encoding del servidor
                                         val href = currentHref!!
-                                        
+
                                         // Construir la URL completa manteniendo el encoding
                                         val fullUrl = buildFullUrl(currentUrl, href)
-                                        
+
                                         // Evitar incluir el directorio actual
                                         val normalizedCurrent = currentUrl.trimEnd('/')
                                         val normalizedFull = fullUrl.trimEnd('/')
-                                        
+
                                         if (normalizedFull != normalizedCurrent && !normalizedFull.equals(normalizedCurrent, ignoreCase = true)) {
                                             // Decodificar solo para el título de display
                                             val decodedHref = try {
@@ -290,7 +290,7 @@ class WebDavSource(
                                                 href
                                             }
                                             val title = currentDisplayName ?: lastSegment(decodedHref)
-                                            
+
                                             if (title.isNotEmpty()) {
                                                 list.add(MangaInfo(title, fullUrl))
                                             }
@@ -324,14 +324,14 @@ class WebDavSource(
             // Si el href es absoluto (empieza con /), construir desde el dominio
             if (href.startsWith("/")) {
                 val uri = URI(baseUrl)
-                return "${uri.scheme}://${uri.authority}${href}"
+                return "$uri.scheme://$uri.authority$href"
             }
-            
+
             // Si es relativo, añadir al final de baseUrl
             "${baseUrl.trimEnd('/')}/${href.trimStart('/')}"
         } catch (e: Exception) {
             // En caso de error, intentar una concatenación simple
-            "${baseUrl.trimEnd('/')}/${href.trimStart('/')}"
+            baseUrl.trimEnd('/') + "/" + href.trimStart('/')
         }
     }
 
