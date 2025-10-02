@@ -272,18 +272,18 @@ class WebDavSource(
                                 if (currentHref != null) {
                                     // Construir la URL completa desde el href
                                     val fullUrl = buildFullUrl(currentUrl, currentHref!!)
-                                    
+
                                     // Obtener el nombre del último segmento
                                     val title = currentDisplayName ?: getLastSegment(currentHref!!)
-                                    
+
                                     // Evitar incluir el directorio actual
                                     if (!isSameUrl(fullUrl, currentUrl) && title.isNotEmpty()) {
                                         list.add(
                                             MangaInfo(
                                                 title = title,
                                                 path = ".", // No se usa
-                                                url = fullUrl
-                                            )
+                                                url = fullUrl,
+                                            ), 
                                         )
                                     }
                                 }
@@ -310,7 +310,7 @@ class WebDavSource(
             } else {
                 // Decodificar el href
                 val decodedHref = URLDecoder.decode(href, "UTF-8")
-                
+
                 // Si href es una ruta absoluta, combinarla con el esquema y host del baseUrl
                 if (decodedHref.startsWith("/")) {
                     val uri = URI(baseUrl)
