@@ -11,6 +11,7 @@ import okhttp3.Route
 import org.xmlpull.v1.XmlPullParser
 import org.xmlpull.v1.XmlPullParserFactory
 import java.io.StringReader
+import java.net.URI
 import java.net.URLDecoder
 import java.util.concurrent.TimeUnit
 import kotlin.math.min
@@ -93,8 +94,8 @@ class WebDavSource(
             }.map { entry ->
                 MangaInfo(
                     title = entry.title,
-                    path = entry.path,
-                    url = entry.path,
+                    path = entry.url, // Usar URL completa
+                    url = entry.url,
                     description = "WebDAV Manga: ${entry.title}",
                 )
             }
@@ -105,11 +106,7 @@ class WebDavSource(
 
     override fun fetchChapters(manga: MangaInfo): List<ChapterInfo> {
         return try {
-            val url = if (manga.path.startsWith("http")) {
-                manga.path
-            } else {
-                joinUrl(baseUrl, manga.path)
-            }
+            val url = manga.path
 
             val xml = propfind(url)
             val entries = parsePropfindList(xml, url)
@@ -134,8 +131,8 @@ class WebDavSource(
                     chapters.add(
                         ChapterInfo(
                             name = name,
-                            path = entry.path,
-                            url = entry.path,
+                            path = entry.url, // Usar URL completa
+                            url = entry.url,
                             chapterNumber = chapterNumber,
                             dateUpload = System.currentTimeMillis(),
                         ),
@@ -146,8 +143,8 @@ class WebDavSource(
                     chapters.add(
                         ChapterInfo(
                             name = entry.title,
-                            path = entry.path,
-                            url = entry.path,
+                            path = entry.url, // Usar URL completa
+                            url = entry.url,
                             chapterNumber = chapterNumber,
                             dateUpload = System.currentTimeMillis(),
                         ),
@@ -166,15 +163,10 @@ class WebDavSource(
 
     override fun fetchPageList(manga: MangaInfo, chapter: ChapterInfo): List<WebDavPage> {
         return try {
-            val url = if (chapter.path.startsWith("http")) {
-                chapter.path
-            } else {
-                joinUrl(baseUrl, chapter.path)
-            }
+            val url = chapter.path
 
-            if (isArchive(chapter.path) || isArchive(url)) {
+            if (isArchive(chapter.name) || isArchive(url)) {
                 // Para archivos comprimidos, devolver el archivo como página única
-                // Tachiyomi puede manejar CBZ/ZIP internamente
                 listOf(WebDavPage(0, url))
             } else {
                 // Para directorios, buscar imágenes
@@ -189,12 +181,7 @@ class WebDavSource(
                 }
 
                 images.mapIndexed { idx, entry ->
-                    val imageUrl = if (entry.path.startsWith("http")) {
-                        entry.path
-                    } else {
-                        joinUrl(baseUrl, entry.path)
-                    }
-                    WebDavPage(idx, imageUrl)
+                    WebDavPage(idx, entry.url) // Usar URL completa
                 }
             }
         } catch (e: Exception) {
@@ -231,14 +218,14 @@ class WebDavSource(
 
         client.newCall(request).execute().use { response ->
             if (!response.isSuccessful) {
-                throw Exception("PROPFIND failed: ${response.code} - ${response.message}")
+                throw Exception("PROPFIND failed: ${response.code} - ${response.message}. URL: $url")
             }
             return response.body?.string() ?: ""
         }
     }
 
     @Suppress("LongMethod", "ComplexMethod")
-    private fun parsePropfindList(xml: String, baseUrl: String): List<MangaInfo> {
+    private fun parsePropfindList(xml: String, currentUrl: String): List<MangaInfo> {
         val list = mutableListOf<MangaInfo>()
         if (xml.isBlank()) return list
 
@@ -271,11 +258,7 @@ class WebDavSource(
                     }
                     XmlPullParser.TEXT -> {
                         if (inHref && parser.text.isNotBlank()) {
-                            currentHref = try {
-                                URLDecoder.decode(parser.text.trim(), "UTF-8")
-                            } catch (e: Exception) {
-                                parser.text.trim()
-                            }
+                            currentHref = parser.text.trim()
                         } else if (inDisplayName && parser.text.isNotBlank()) {
                             currentDisplayName = parser.text.trim()
                         }
@@ -287,17 +270,21 @@ class WebDavSource(
                             "displayname" -> inDisplayName = false
                             "response" -> {
                                 if (currentHref != null) {
-                                    val normalizedBaseUrl = baseUrl.trimEnd('/')
-                                    val normalizedHref = currentHref!!.trimEnd('/')
-
-                                    // Evitar incluir el directorio base mismo
-                                    if (!normalizedHref.equals(normalizedBaseUrl, ignoreCase = true)) {
-                                        val relativePath = toRelativePath(normalizedBaseUrl, normalizedHref)
-                                        val title = currentDisplayName ?: lastSegment(relativePath)
-
-                                        if (relativePath.isNotEmpty() && relativePath != "." && title.isNotEmpty()) {
-                                            list.add(MangaInfo(title, relativePath))
-                                        }
+                                    // Construir la URL completa desde el href
+                                    val fullUrl = buildFullUrl(currentUrl, currentHref!!)
+                                    
+                                    // Obtener el nombre del último segmento
+                                    val title = currentDisplayName ?: getLastSegment(currentHref!!)
+                                    
+                                    // Evitar incluir el directorio actual
+                                    if (!isSameUrl(fullUrl, currentUrl) && title.isNotEmpty()) {
+                                        list.add(
+                                            MangaInfo(
+                                                title = title,
+                                                path = ".", // No se usa
+                                                url = fullUrl
+                                            )
+                                        )
                                     }
                                 }
                                 currentHref = null
@@ -312,37 +299,52 @@ class WebDavSource(
             throw Exception("Error parsing WebDAV response: ${e.message}")
         }
 
-        return list.distinctBy { it.path }
+        return list.distinctBy { it.url }
     }
 
-    private fun toRelativePath(base: String, href: String): String {
+    private fun buildFullUrl(baseUrl: String, href: String): String {
         return try {
-            val normalizedBase = base.trimEnd('/')
-            val normalizedHref = href.trimEnd('/')
-
-            if (normalizedHref.startsWith(normalizedBase)) {
-                val relative = normalizedHref.substring(normalizedBase.length).trimStart('/')
-                if (relative.isEmpty()) "." else relative
+            // Si href ya es una URL completa, usarla directamente
+            if (href.startsWith("http://") || href.startsWith("https://")) {
+                href
             } else {
-                lastSegment(normalizedHref)
+                // Decodificar el href
+                val decodedHref = URLDecoder.decode(href, "UTF-8")
+                
+                // Si href es una ruta absoluta, combinarla con el esquema y host del baseUrl
+                if (decodedHref.startsWith("/")) {
+                    val uri = URI(baseUrl)
+                    val scheme = uri.scheme
+                    val host = uri.host
+                    val port = if (uri.port > 0) ":${uri.port}" else ""
+                    "$scheme://$host$port$decodedHref"
+                } else {
+                    // Si es relativa, agregarla al baseUrl
+                    val normalizedBase = baseUrl.trimEnd('/')
+                    "$normalizedBase/$decodedHref"
+                }
             }
         } catch (e: Exception) {
-            lastSegment(href)
+            // En caso de error, intentar una construcción simple
+            val normalizedBase = baseUrl.trimEnd('/')
+            val normalizedHref = href.trimStart('/')
+            "$normalizedBase/$normalizedHref"
         }
     }
 
-    private fun lastSegment(path: String): String {
-        return path.trimEnd('/').split('/').lastOrNull()?.takeIf { it.isNotEmpty() } ?: path
+    private fun isSameUrl(url1: String, url2: String): Boolean {
+        val normalized1 = url1.trimEnd('/')
+        val normalized2 = url2.trimEnd('/')
+        return normalized1.equals(normalized2, ignoreCase = true)
     }
 
-    private fun joinUrl(base: String, path: String): String {
-        if (path == "." || path.isEmpty()) return base
-        if (path.startsWith("http://") || path.startsWith("https://")) return path
-
-        // NO codificar el path - el servidor WebDAV ya lo maneja correctamente
-        // Solo asegurar que la URL esté bien formada
-        val normalizedPath = path.trimStart('/')
-        return base.trimEnd('/') + "/" + normalizedPath
+    private fun getLastSegment(path: String): String {
+        val decoded = try {
+            URLDecoder.decode(path, "UTF-8")
+        } catch (e: Exception) {
+            path
+        }
+        return decoded.trimEnd('/').split('/').lastOrNull()?.takeIf { it.isNotEmpty() } ?: decoded
     }
 
     private fun isImage(name: String): Boolean {
