@@ -110,8 +110,10 @@ class WebDavSource(
                     joinUrl(baseUrl, entry.path)
                 }
 
-                // Verificar si este directorio contiene capítulos
-                if (hasChapters(dirUrl)) {
+                // Verificar si este directorio contiene capítulos DIRECTAMENTE
+                val directChapters = hasDirectChapters(dirUrl)
+
+                if (directChapters) {
                     // Este es un manga
                     mangaList.add(
                         MangaInfo(
@@ -122,7 +124,7 @@ class WebDavSource(
                         ),
                     )
                 } else {
-                    // Buscar recursivamente en subdirectorios
+                    // No tiene capítulos directos, buscar recursivamente en subdirectorios
                     mangaList.addAll(findAllManga(dirUrl, currentDepth + 1, maxDepth))
                 }
             }
@@ -133,39 +135,35 @@ class WebDavSource(
         return mangaList
     }
 
-    private fun hasChapters(url: String): Boolean {
+    private fun hasDirectChapters(url: String): Boolean {
         return try {
             val xml = propfind(url)
             val entries = parsePropfindList(xml, url)
 
-            // Un directorio tiene capítulos si contiene:
-            // 1. Archivos comprimidos (CBZ, ZIP, etc.)
-            // 2. Subdirectorios que contienen imágenes
+            // Tiene capítulos directos si contiene archivos comprimidos
             val hasArchives = entries.any { isArchive(it.title) }
-
             if (hasArchives) return true
 
-            // Verificar si hay subdirectorios con imágenes
+            // O si contiene subdirectorios que tienen imágenes
             val directories = entries.filter { !isFile(it.title) && it.path != "." }
-            for (dir in directories) {
-                val dirUrl = if (dir.path.startsWith("http")) {
-                    dir.path
-                } else {
-                    joinUrl(baseUrl, dir.path)
-                }
+            if (directories.isEmpty()) return false
 
-                try {
-                    val dirXml = propfind(dirUrl)
-                    val dirEntries = parsePropfindList(dirXml, dirUrl)
-                    if (dirEntries.any { isImage(it.title) }) {
-                        return true
-                    }
-                } catch (e: Exception) {
-                    // Ignorar errores al verificar subdirectorios
-                }
+            // Verificar SOLO el primer subdirectorio para evitar búsquedas profundas
+            val firstDir = directories.firstOrNull() ?: return false
+            val dirUrl = if (firstDir.path.startsWith("http")) {
+                firstDir.path
+            } else {
+                joinUrl(baseUrl, firstDir.path)
             }
 
-            false
+            try {
+                val dirXml = propfind(dirUrl)
+                val dirEntries = parsePropfindList(dirXml, dirUrl)
+                // Si tiene imágenes directamente, entonces este nivel es de capítulos
+                dirEntries.any { isImage(it.title) }
+            } catch (e: Exception) {
+                false
+            }
         } catch (e: Exception) {
             false
         }
