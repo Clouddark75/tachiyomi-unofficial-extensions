@@ -58,9 +58,9 @@ class WebDavSource(
     override val lang: String = "all"
 
     private val client: OkHttpClient = OkHttpClient.Builder()
-        .connectTimeout(30, TimeUnit.SECONDS)
-        .readTimeout(60, TimeUnit.SECONDS)
-        .writeTimeout(30, TimeUnit.SECONDS)
+        .connectTimeout(5, TimeUnit.SECONDS)
+        .readTimeout(10, TimeUnit.SECONDS)
+        .writeTimeout(5, TimeUnit.SECONDS)
         .apply {
             if (!username.isNullOrBlank() && !password.isNullOrBlank()) {
                 authenticator(
@@ -86,21 +86,88 @@ class WebDavSource(
         }
 
         return try {
-            val xml = propfind(baseUrl)
-            val entries = parsePropfindList(xml, baseUrl)
-
-            entries.filter { entry ->
-                !isFile(entry.title) && entry.path != "." // Solo directorios como manga
-            }.map { entry ->
-                MangaInfo(
-                    title = entry.title,
-                    path = entry.path,
-                    url = entry.path,
-                    description = "WebDAV Manga: ${entry.title}",
-                )
-            }
+            // Buscar recursivamente todos los manga en el servidor
+            findAllManga(baseUrl, maxDepth = 3)
         } catch (e: Exception) {
             throw Exception("Error fetching manga list: ${e.message}")
+        }
+    }
+
+    private fun findAllManga(url: String, currentDepth: Int = 0, maxDepth: Int = 3): List<MangaInfo> {
+        if (currentDepth > maxDepth) return emptyList()
+
+        val mangaList = mutableListOf<MangaInfo>()
+        
+        try {
+            val xml = propfind(url)
+            val entries = parsePropfindList(xml, url)
+            val directories = entries.filter { !isFile(it.title) && it.path != "." }
+
+            for (entry in directories) {
+                val dirUrl = if (entry.path.startsWith("http")) {
+                    entry.path
+                } else {
+                    joinUrl(baseUrl, entry.path)
+                }
+
+                // Verificar si este directorio contiene capítulos
+                if (hasChapters(dirUrl)) {
+                    // Este es un manga
+                    mangaList.add(
+                        MangaInfo(
+                            title = entry.title,
+                            path = entry.path,
+                            url = entry.path,
+                            description = "WebDAV Manga: ${entry.title}",
+                        ),
+                    )
+                } else {
+                    // Buscar recursivamente en subdirectorios
+                    mangaList.addAll(findAllManga(dirUrl, currentDepth + 1, maxDepth))
+                }
+            }
+        } catch (e: Exception) {
+            // Ignorar errores en directorios individuales y continuar
+        }
+
+        return mangaList
+    }
+
+    private fun hasChapters(url: String): Boolean {
+        return try {
+            val xml = propfind(url)
+            val entries = parsePropfindList(xml, url)
+            
+            // Un directorio tiene capítulos si contiene:
+            // 1. Archivos comprimidos (CBZ, ZIP, etc.)
+            // 2. Subdirectorios que contienen imágenes
+            val hasArchives = entries.any { isArchive(it.title) }
+            
+            if (hasArchives) return true
+
+            // Verificar si hay subdirectorios con imágenes
+            val directories = entries.filter { !isFile(it.title) && it.path != "." }
+            for (dir in directories) {
+                val dirUrl = if (dir.path.startsWith("http")) {
+                    dir.path
+                } else {
+                    joinUrl(baseUrl, dir.path)
+                }
+                
+                try {
+                    val dirXml = propfind(dirUrl)
+                    val dirEntries = parsePropfindList(dirXml, dirUrl)
+                    if (dirEntries.any { isImage(it.title) }) {
+                        return true
+                    }
+                } catch (e: Exception) {
+                    // Ignorar errores al verificar subdirectorios
+                }
+            }
+
+            false
+        } catch (e: Exception) {
+            false
         }
     }
 
