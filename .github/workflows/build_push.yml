@@ -23,11 +23,6 @@ jobs:
         outputs:
             individualMatrix: ${{ steps.generate-matrices.outputs.individualMatrix }}
         steps:
-            - name: Force IPv4
-              run: |
-                  sudo bash -c "echo 'precedence ::ffff:0:0/96  100' >> /etc/gai.conf"
-                  git config --global url."https://github.com/".insteadOf "git://github.com/"
-
             - name: Clone repo
               uses: actions/checkout@v4
               with:
@@ -78,11 +73,6 @@ jobs:
         strategy:
             matrix: ${{ fromJSON(needs.prepare.outputs.individualMatrix) }}
         steps:
-            - name: Force IPv4
-              run: |
-                  sudo bash -c "echo 'precedence ::ffff:0:0/96  100' >> /etc/gai.conf"
-                  git config --global url."https://github.com/".insteadOf "git://github.com/"
-
             - name: Checkout branch
               uses: actions/checkout@v4
               with:
@@ -132,11 +122,6 @@ jobs:
         if: github.repository == 'Clouddark75/tachiyomi-unofficial-extensions'
         runs-on: ubuntu-latest
         steps:
-            - name: Force IPv4
-              run: |
-                  sudo bash -c "echo 'precedence ::ffff:0:0/96  100' >> /etc/gai.conf"
-                  git config --global url."https://github.com/".insteadOf "git://github.com/"
-
             - name: Download APK artifacts
               uses: actions/download-artifact@v4
               with:
@@ -160,6 +145,7 @@ jobs:
               run: |
                   cd repo
                   
+                  # Check if scripts exist before running them
                   if [ -f "../.github/scripts/move-apks.sh" ]; then
                       chmod +x ../.github/scripts/move-apks.sh
                       ../.github/scripts/move-apks.sh
@@ -169,10 +155,11 @@ jobs:
                       find ~/apk-artifacts -name "*.apk" -exec cp {} apk/ \;
                   fi
                   
+                  # Download inspector with better error handling
                   INSPECTOR_LINK="$(curl -s "https://api.github.com/repos/tachiyomiorg/tachiyomi-extensions-inspector/releases/latest" | jq -r '.assets[0].browser_download_url')"
                   if [ "$INSPECTOR_LINK" != "null" ] && [ -n "$INSPECTOR_LINK" ]; then
                       echo "Downloading Inspector from: $INSPECTOR_LINK"
-                      curl -4 -L "$INSPECTOR_LINK" -o ./Inspector.jar
+                      curl -L "$INSPECTOR_LINK" -o ./Inspector.jar
                       java -jar ./Inspector.jar "apk" "output.json" "tmp"
                   else
                       echo "Warning: Could not download Inspector, creating basic index"
@@ -199,3 +186,4 @@ jobs:
                       git add .
                       git diff --staged --quiet || git commit -m "Update extensions repo"
                       git push
+                  fi
