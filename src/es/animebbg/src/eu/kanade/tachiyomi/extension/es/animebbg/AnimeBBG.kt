@@ -138,6 +138,12 @@ class AnimeBBG : ParsedHttpSource() {
     }
 
     override fun mangaDetailsParse(document: Document): SManga = SManga.create().apply {
+        // Actualizar la URL con la versión canónica del servidor (sin encoding)
+        // Esto corrige entradas antiguas guardadas con caracteres codificados (ej: m%C3%A1gicas → mágicas)
+        document.selectFirst("link[rel=canonical]")?.attr("href")?.let { canonical ->
+            setUrlWithoutDomain(canonical.decodeUrl())
+        }
+
         title = document.selectFirst("h1.p-title-value")?.text()
             ?.replace(Regex("\\s*ES\\s*"), "")
             ?.replace(Regex("\\s*Manhua\\s*"), "")
