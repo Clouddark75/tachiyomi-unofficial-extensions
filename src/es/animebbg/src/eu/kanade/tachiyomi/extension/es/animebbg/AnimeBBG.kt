@@ -22,11 +22,6 @@ class AnimeBBG : ParsedHttpSource() {
     override val lang = "es"
     override val supportsLatest = true
 
-    // Formato de fecha para parsing
-    private val dateFormat by lazy {
-        SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ", Locale.ENGLISH)
-    }
-
     override fun popularMangaSelector(): String = "a[data-tp-primary='on']"
     override fun latestUpdatesSelector(): String = popularMangaSelector()
 
@@ -39,7 +34,7 @@ class AnimeBBG : ParsedHttpSource() {
     // Selector para paginación en búsqueda
     override fun searchMangaNextPageSelector(): String = "a[aria-label='Go to the next page']"
 
-    override fun chapterListSelector(): String = "div.structItem-title a"
+    override fun chapterListSelector(): String = "div.md-chapter-row"
 
     override fun popularMangaRequest(page: Int): Request {
         return GET("$baseUrl/comics/?page=$page", headers)
@@ -196,40 +191,31 @@ class AnimeBBG : ParsedHttpSource() {
     }
 
     override fun chapterFromElement(element: Element): SChapter = SChapter.create().apply {
-        setUrlWithoutDomain(element.attr("href"))
-        name = element.text().trim()
+        val link = element.selectFirst("a.md-chapter-link")
+        setUrlWithoutDomain(link?.attr("href") ?: "")
+        name = link?.text()?.trim() ?: ""
 
-        // Buscar fecha en el contenedor del capítulo
-        val dateElement = element.closest(".structItem")?.selectFirst("time")
-        date_upload = dateElement?.attr("datetime")?.let {
-            parseDate(it)
-        } ?: 0L
+        // Leer la fecha directamente del nuevo elemento md-grid-date
+        val dateText = element.selectFirst(".md-grid-date")
+            ?.ownText()
+            ?.trim()
+        date_upload = dateText?.let { parseDateSimple(it) } ?: 0L
     }
 
-    private fun parseDate(date: String): Long {
+    private fun parseDateSimple(date: String): Long {
+        // Intentar con formato dd/MM/yyyy de la página
+        // En caso de que venga con texto extra, extraer solo la fecha
+        val cleanDate = Regex("""\d{2}/\d{2}/\d{4}""").find(date)?.value ?: return 0L
         return try {
-            // El formato es: 2025-08-31T20:33:04-0500
-            // Necesitamos manejar el offset de zona horaria
-            val cleanDate = date.replace("([+-]\\d{2})(\\d{2})$".toRegex(), "$1:$2")
-            dateFormat.parse(cleanDate.replace(":", ""))?.time ?: 0L
+            SimpleDateFormat("dd/MM/yyyy", Locale.ENGLISH).parse(cleanDate)?.time ?: 0L
         } catch (e: Exception) {
-            try {
-                // Intentar con SimpleDateFormat alternativo para el formato ISO
-                val isoFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssX", Locale.ENGLISH)
-                val cleanDate = date.replace("([+-]\\d{2})(\\d{2})$".toRegex(), "$1:$2")
-                isoFormat.parse(cleanDate)?.time ?: 0L
-            } catch (e2: Exception) {
-                0L
-            }
+            0L
         }
     }
 
     override fun chapterListParse(response: Response): List<SChapter> {
         val document = org.jsoup.Jsoup.parse(response.body.string())
         val chapters = mutableListOf<SChapter>()
-
-        // Obtener las fechas del manga desde la página de detalles
-        val mangaTimestamps = getMangaTimestamps(response, document)
 
         // Obtener capítulos de la página actual
         val currentPageChapters = document.select(chapterListSelector()).map { element ->
@@ -272,125 +258,15 @@ class AnimeBBG : ParsedHttpSource() {
         }
 
         // Retornar capítulos en orden reverso (más recientes primero)
-        val reversedChapters = chapters.reversed().toMutableList()
-
-        // Aplicar timestamps DESPUÉS del reverse, cuando ya están ordenados correctamente
-        applyTimestampsToChapters(reversedChapters, mangaTimestamps)
-
-        return reversedChapters
-    }
-
-    private fun getMangaTimestamps(response: Response, document: Document): Pair<Long, Long> {
-        var firstReleaseTimestamp = 0L
-        var lastUpdateTimestamp = 0L
-
-        try {
-            // Obtener las fechas de la página principal del manga
-            val currentUrl = response.request.url.toString()
-            val mangaUrl = currentUrl.substringBefore("capitulos")
-            val mangaResponse = client.newCall(GET(mangaUrl, headers)).execute()
-            val mangaDocument = org.jsoup.Jsoup.parse(mangaResponse.body.string())
-            mangaResponse.close()
-
-            // Buscar fechas en los pares de definición
-            mangaDocument.select("dl.pairs--justified").forEach { dl ->
-                val dt = dl.selectFirst("dt")?.text()?.trim()
-                if (dt?.contains("Primer lanzamiento", ignoreCase = true) == true) {
-                    val datetime = dl.selectFirst("time")?.attr("datetime")
-                    if (!datetime.isNullOrEmpty()) {
-                        firstReleaseTimestamp = parseDate(datetime)
-                    }
-                }
-                // Buscar "Ultima actualización" (con o sin tilde)
-                if (dt?.contains("Ultima actualización", ignoreCase = true) == true ||
-                    dt?.contains("Última actualización", ignoreCase = true) == true
-                ) {
-                    val datetime = dl.selectFirst("time")?.attr("datetime")
-                    if (!datetime.isNullOrEmpty()) {
-                        lastUpdateTimestamp = parseDate(datetime)
-                    }
-                }
-            }
-        } catch (e: Exception) {
-            // Si hay error, usar valores por defecto
-        }
-
-        return Pair(firstReleaseTimestamp, lastUpdateTimestamp)
-    }
-
-    private fun applyTimestampsToChapters(chapters: MutableList<SChapter>, timestamps: Pair<Long, Long>) {
-        val (firstReleaseTimestamp, lastUpdateTimestamp) = timestamps
-
-        if (chapters.isEmpty() || (firstReleaseTimestamp == 0L && lastUpdateTimestamp == 0L)) return
-
-        // Contar capítulos sin fecha
-        val chaptersWithoutDate = chapters.filter { it.date_upload == 0L }
-        val chaptersWithDate = chapters.filter { it.date_upload != 0L }
-
-        if (chaptersWithoutDate.isNotEmpty()) {
-            // Si todos los capítulos no tienen fecha
-            if (chaptersWithDate.isEmpty()) {
-                val totalChapters = chapters.size
-
-                // Si tenemos ambas fechas, interpolar entre ellas
-                if (firstReleaseTimestamp > 0L && lastUpdateTimestamp > 0L) {
-                    chapters.forEachIndexed { index, chapter ->
-                        if (chapter.date_upload == 0L) {
-                            // Interpolación lineal entre primer lanzamiento y última actualización
-                            val ratio = index.toFloat() / (totalChapters - 1).toFloat()
-                            val timeDiff = lastUpdateTimestamp - firstReleaseTimestamp
-                            val interpolatedTime = firstReleaseTimestamp +
-                                (timeDiff * (1 - ratio)).toLong()
-                            chapter.date_upload = interpolatedTime
-                        }
-                    }
-                } else if (lastUpdateTimestamp > 0L) {
-                    // Solo tenemos última actualización, aplicar a todos con decrementos
-                    chapters.forEachIndexed { index, chapter ->
-                        if (chapter.date_upload == 0L) {
-                            // Decrementar 1 día por cada capítulo hacia atrás
-                            val dayInMillis = 24 * 60 * 60 * 1000L
-                            chapter.date_upload = lastUpdateTimestamp - (index * dayInMillis)
-                        }
-                    }
-                } else if (firstReleaseTimestamp > 0L) {
-                    // Solo tenemos primer lanzamiento, aplicar a todos con incrementos
-                    chapters.forEachIndexed { index, chapter ->
-                        if (chapter.date_upload == 0L) {
-                            // Incrementar 1 día por cada capítulo hacia adelante
-                            val dayInMillis = 24 * 60 * 60 * 1000L
-                            val dayOffset = (totalChapters - 1 - index) * dayInMillis
-                            chapter.date_upload = firstReleaseTimestamp + dayOffset
-                        }
-                    }
-                }
-            } else {
-                // Si algunos capítulos tienen fecha, usar fechas escalonadas
-                var appliedCount = 0
-                chapters.forEach { chapter ->
-                    if (chapter.date_upload == 0L && appliedCount < chaptersWithoutDate.size) {
-                        if (lastUpdateTimestamp > 0L) {
-                            val dayInMillis = 24 * 60 * 60 * 1000L
-                            chapter.date_upload = lastUpdateTimestamp - (appliedCount * dayInMillis)
-                            appliedCount++
-                        } else if (firstReleaseTimestamp > 0L) {
-                            val dayInMillis = 24 * 60 * 60 * 1000L
-                            chapter.date_upload = firstReleaseTimestamp + (appliedCount * dayInMillis)
-                            appliedCount++
-                        }
-                    }
-                }
-            }
-        }
+        return chapters.reversed()
     }
 
     override fun pageListParse(document: Document): List<Page> {
-        return document.select("a.js-lbImage").mapIndexed { i, element ->
-            val url = element.attr("data-src").ifEmpty {
-                element.selectFirst("img")?.attr("src") ?: ""
+        return document.select("div.avmReader-page:not(.avmReader-page--end) img.js-avmImage")
+            .mapIndexed { i, img ->
+                val url = img.attr("data-src").ifEmpty { img.attr("src") }
+                Page(i, "", baseUrl + url)
             }
-            Page(i, "", baseUrl + url)
-        }
     }
 
     override fun imageUrlParse(document: Document): String = ""
