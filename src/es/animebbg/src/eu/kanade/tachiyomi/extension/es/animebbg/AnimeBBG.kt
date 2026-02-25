@@ -22,6 +22,9 @@ class AnimeBBG : ParsedHttpSource() {
     override val lang = "es"
     override val supportsLatest = true
 
+    private fun String.decodeUrl(): String =
+        java.net.URLDecoder.decode(this, "UTF-8")
+
     override fun popularMangaSelector(): String = "a[data-tp-primary='on']"
     override fun latestUpdatesSelector(): String = popularMangaSelector()
 
@@ -60,7 +63,7 @@ class AnimeBBG : ParsedHttpSource() {
 
     override fun popularMangaFromElement(element: Element): SManga {
         val manga = SManga.create().apply {
-            setUrlWithoutDomain(element.attr("href"))
+            setUrlWithoutDomain(element.attr("href").decodeUrl())
             title = element.text().trim()
         }
 
@@ -83,7 +86,7 @@ class AnimeBBG : ParsedHttpSource() {
         // Buscar el enlace al comic dentro del resultado de búsqueda
         val linkElement = element.selectFirst("a[href*='/comics/']")
         if (linkElement != null) {
-            manga.setUrlWithoutDomain(linkElement.attr("href"))
+            manga.setUrlWithoutDomain(linkElement.attr("href").decodeUrl())
 
             // Extraer título del texto del enlace o del snippet
             val titleElement = element.selectFirst(".gsc-title-link")
@@ -124,7 +127,7 @@ class AnimeBBG : ParsedHttpSource() {
             if (title.contains("Capítulo", true) || title.contains("Capitulo", true)) return@mapNotNull null
 
             SManga.create().apply {
-                setUrlWithoutDomain(element.selectFirst("a.structItem-title")?.attr("href") ?: return@mapNotNull null)
+                setUrlWithoutDomain(element.selectFirst("a.structItem-title")?.attr("href")?.decodeUrl() ?: return@mapNotNull null)
                 this.title = title
                 this.thumbnail_url = element.selectFirst("img")?.attr("src")
             }
@@ -181,18 +184,22 @@ class AnimeBBG : ParsedHttpSource() {
         }
     }
 
+    override fun mangaDetailsRequest(manga: SManga): Request {
+        return GET(baseUrl + manga.url.decodeUrl(), headers)
+    }
+
     override fun chapterListRequest(manga: SManga): Request {
         return chapterListRequest(manga, 1)
     }
 
     // Método para solicitar capítulos con paginación
     private fun chapterListRequest(manga: SManga, page: Int): Request {
-        return GET("$baseUrl${manga.url}capitulos?page=$page", headers)
+        return GET("$baseUrl${manga.url.decodeUrl()}capitulos?page=$page", headers)
     }
 
     override fun chapterFromElement(element: Element): SChapter = SChapter.create().apply {
         val link = element.selectFirst("a.md-chapter-link")
-        setUrlWithoutDomain(link?.attr("href") ?: "")
+        setUrlWithoutDomain(link?.attr("href")?.decodeUrl() ?: "")
         name = link?.text()?.trim() ?: ""
 
         // Leer la fecha directamente del nuevo elemento md-grid-date
