@@ -1,42 +1,7 @@
-apply plugin: 'com.android.library'
-apply plugin: 'kotlin-android'
-apply plugin: 'kotlinx-serialization'
-
 ext {
     extName = 'WebDAV'
     extClass = '.WebDavFactory'
-    extVersionCode = 1
-    libVersion = '13'
-}
-
-dependencies {
-    compileOnly 'org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.5.30'
-    compileOnly 'com.squareup.okhttp3:okhttp:4.9.3'
-    compileOnly 'org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.3'
-    compileOnly 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.5.2'
-    
-    implementation 'androidx.preference:preference:1.2.0'
-}
-
-android {
-    compileSdkVersion 34
-    namespace 'eu.kanade.tachiyomi.extension.all.webdav'
-    
-    defaultConfig {
-        minSdkVersion 21
-        targetSdkVersion 34
-        versionCode extVersionCode
-        versionName "1.0.$extVersionCode"
-    }
-    
-    compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
-    }
-    
-    kotlinOptions {
-        jvmTarget = '1.8'
-    }
+    extVersionCode = 1 
 }
 
 apply from: "$rootDir/common.gradle"
