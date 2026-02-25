@@ -257,8 +257,7 @@ class AnimeBBG : ParsedHttpSource() {
             }
         }
 
-        // Retornar capítulos en orden reverso (más recientes primero)
-        return chapters.reversed()
+        return chapters
     }
 
     override fun pageListParse(document: Document): List<Page> {
